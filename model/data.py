@@ -6,6 +6,7 @@ import glob
 import os
 import cv2 as cv
 import math
+from PIL import Image
 
 trimap_kernel = [val for val in range(20, 40)]
 g_mean = np.array(([126.88, 120.24, 112.19])).reshape([1, 1, 3])
@@ -85,12 +86,13 @@ def matting_input_fn(params):
                 fname = os.path.join(fg_path, fname)
                 if not os.path.exists(fname):
                     continue
-                alpha = cv.imread(aname, 0)
+                alpha = Image.open(aname)
+                alpha = np.array(alpha)
                 alpha[np.greater(alpha, 0)] = 255
-                original_foreground = cv.imread(fname)
+                original_foreground = np.array(Image.open(fname))
                 for _ in range(background_count):
                     background = random.choice(backgrounds)
-                    background = cv.imread(background)
+                    background = np.array(Image.open(background))
                     background = norm_background(background, original_foreground.shape[0], original_foreground.shape[1])
                     crop_size = random.choice(different_sizes)
                     trimap = generate_trimap(alpha)

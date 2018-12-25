@@ -89,10 +89,11 @@ def matting_input_fn(params):
                 alpha = Image.open(aname)
                 alpha = np.array(alpha)
                 alpha[np.greater(alpha, 0)] = 255
-                original_foreground = np.array(Image.open(fname))
+                original_foreground = np.array(Image.open(fname).convert('RGB'))
                 for _ in range(background_count):
                     background = random.choice(backgrounds)
-                    background = np.array(Image.open(background))
+                    background = np.array(Image.open(background).convert('RGB'))
+                    #print(background.shape)
                     background = norm_background(background, original_foreground.shape[0], original_foreground.shape[1])
                     crop_size = random.choice(different_sizes)
                     trimap = generate_trimap(alpha)

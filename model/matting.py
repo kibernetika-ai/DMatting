@@ -9,7 +9,7 @@ import numpy as np
 
 
 def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
-    logging.info('{} pool:{} ind:{}'.format(pool,ind))
+    logging.info('{} pool:{} ind:{}'.format(name,pool,ind))
     with tf.variable_scope(name) as scope:
         input_shape = tf.shape(pool)
         output_shape = [input_shape[0], input_shape[1] * ksize[1], input_shape[2] * ksize[2], input_shape[3]]

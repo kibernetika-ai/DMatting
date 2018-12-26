@@ -54,6 +54,10 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     logging.info("Train encoder_decoder {}".format(encoder_training))
     logging.info("Train refinement {}".format(refinement_training))
     training = (mode == tf.estimator.ModeKeys.TRAIN)
+    def _layer_sum(name,l):
+        tf.summary.scalar(name+"_0",tf.reduce_sum(l[0]))
+        tf.summary.scalar(name+"_1",tf.reduce_sum(l[1]))
+        tf.summary.scalar(name+"_2",tf.reduce_sum(l[2]))
     # conv1_1
     with tf.name_scope('conv1_1') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 4, 64], dtype=tf.float32,
@@ -64,7 +68,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         conv1_1 = tf.nn.relu(out, name=scope)
         en_parameters += [kernel, biases]
-
+    _layer_sum("conv1_1",conv1_1)
     # conv1_2
     with tf.name_scope('conv1_2') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 64, 64], dtype=tf.float32,
@@ -75,7 +79,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         conv1_2 = tf.nn.relu(out, name=scope)
         en_parameters += [kernel, biases]
-
+    _layer_sum("conv1_2",conv1_2)
     # pool1
     pool1, arg1 = tf.nn.max_pool_with_argmax(conv1_2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
                                              name='pool1')
@@ -231,6 +235,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         conv6_1 = tf.nn.relu(out, name='conv6_1')
         en_parameters += [kernel, biases]
+    _layer_sum("conv6_1",conv6_1)
     # deconv6
     with tf.variable_scope('deconv6') as scope:
         kernel = tf.Variable(tf.truncated_normal([1, 1, 4096, 512], dtype=tf.float32,
@@ -243,7 +248,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
 
     # deconv5_1/unpooling
     deconv5_1 = unpool(deconv6, pool_parameters[-1])
-
+    _layer_sum("deconv5_1",deconv5_1)
     # deconv5_2
     with tf.variable_scope('deconv5_2') as scope:
         kernel = tf.Variable(tf.truncated_normal([5, 5, 512, 512], dtype=tf.float32,
@@ -315,6 +320,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         enc_dec_pred = tf.nn.sigmoid(out)
 
+    _layer_sum("enc_dec_pred",enc_dec_pred)
     tf.summary.image('enc_dec_pred', enc_dec_pred, max_outputs=5)
     # refinement
 

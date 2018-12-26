@@ -154,7 +154,9 @@ def export(checkpoint_dir,params):
         model_dir=checkpoint_dir,
     )
     feature_placeholders = {
-        'images': tf.placeholder(tf.float32, [params['batch_size'],32,params['max_width'],3], name='images'),
+        'input': tf.placeholder(tf.float32, [params['batch_size'],320,320,3], name='input'),
+        'trimap': tf.placeholder(tf.float32, [params['batch_size'],320,320,1], name='trimap'),
+
     }
     receiver = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_placeholders,default_batch_size=params['batch_size'])
     net = DeepMatting(
@@ -167,6 +169,7 @@ def export(checkpoint_dir,params):
         receiver,
     )
     export_path = export_path.decode("utf-8")
+    logging.info('Export path: {}'.format(export_path))
 
 
 

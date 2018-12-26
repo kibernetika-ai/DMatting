@@ -9,7 +9,7 @@ import numpy as np
 
 
 def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
-    logging.info('{} pool:{} ind:{}'.format(name,pool,ind))
+    logging.info('{} pool:{} ind:{}'.format(name, pool, ind))
     with tf.variable_scope(name) as scope:
         input_shape = tf.shape(pool)
         output_shape = [input_shape[0], input_shape[1] * ksize[1], input_shape[2] * ksize[2], input_shape[3]]
@@ -30,7 +30,8 @@ def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
         ret = tf.reshape(ret, tf.stack(output_shape))
 
         set_input_shape = pool.get_shape()
-        set_output_shape = [set_input_shape[0], set_input_shape[1] * ksize[1], set_input_shape[2] * ksize[2], set_input_shape[3]]
+        set_output_shape = [set_input_shape[0], set_input_shape[1] * ksize[1], set_input_shape[2] * ksize[2],
+                            set_input_shape[3]]
         ret.set_shape(set_output_shape)
     return ret
 
@@ -47,19 +48,20 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
 
     encoder_training = params['enc_dec']
     refinement_training = params['refinement']
-    #encoder_training1 = encoder_training
-    #refinement_training1 = refinement_training
+    # encoder_training1 = encoder_training
+    # refinement_training1 = refinement_training
     logging.info("Train encoder_decoder {}".format(encoder_training))
     logging.info("Train refinement {}".format(refinement_training))
     training = (mode == tf.estimator.ModeKeys.TRAIN)
-    def _layer_sum(name,l):
-        #tf.summary.scalar(name+"_0",tf.reduce_sum(l[0]))
+
+    def _layer_sum(name, l):
+        # tf.summary.scalar(name+"_0",tf.reduce_sum(l[0]))
         ##tf.summary.scalar(name+"_1",tf.reduce_sum(l[1]))
-        #tf.summary.scalar(name+"_2",tf.reduce_sum(l[2]))
+        # tf.summary.scalar(name+"_2",tf.reduce_sum(l[2]))
         return
 
-    _layer_sum("rgb_input",rgb_input)
-    _layer_sum("rgb_input",trimap_input)
+    _layer_sum("rgb_input", rgb_input)
+    _layer_sum("rgb_input", trimap_input)
     # conv1_1
     en_parameters = []
     with tf.name_scope('conv1_1') as scope:
@@ -71,7 +73,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         conv1_1 = tf.nn.relu(out, name=scope)
         en_parameters += [kernel, biases]
-    _layer_sum("conv1_1",conv1_1)
+    _layer_sum("conv1_1", conv1_1)
     # conv1_2
     with tf.name_scope('conv1_2') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 64, 64], dtype=tf.float32,
@@ -83,7 +85,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         conv1_2 = tf.nn.relu(out, name=scope)
         en_parameters += [kernel, biases]
 
-    _layer_sum("conv1_2",conv1_2)
+    _layer_sum("conv1_2", conv1_2)
     # pool1
     pool1, arg1 = tf.nn.max_pool_with_argmax(conv1_2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
                                              name='pool1')
@@ -174,7 +176,6 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         conv4_2 = tf.nn.relu(out, name=scope)
         en_parameters += [kernel, biases]
 
-
     # conv4_3
     with tf.name_scope('conv4_3') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 512, 512], dtype=tf.float32,
@@ -237,7 +238,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         conv6_1 = tf.nn.relu(out, name='conv6_1')
         en_parameters += [kernel, biases]
 
-    _layer_sum("conv6_1",conv6_1)
+    _layer_sum("conv6_1", conv6_1)
     # deconv6
     with tf.variable_scope('deconv6') as scope:
         kernel = tf.Variable(tf.truncated_normal([1, 1, 4096, 512], dtype=tf.float32,
@@ -246,12 +247,13 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[512], dtype=tf.float32),
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        deconv6 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=encoder_training), name='deconv6')
+        deconv6 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=encoder_training),
+                             name='deconv6')
 
-    _layer_sum("deconv6",deconv6)
+    _layer_sum("deconv6", deconv6)
     # deconv5_1/unpooling
-    deconv5_1 = unpool(deconv6, arg5,name='unpool5')
-    _layer_sum("deconv5_1",deconv5_1)
+    deconv5_1 = unpool(deconv6, arg5, name='unpool5')
+    _layer_sum("deconv5_1", deconv5_1)
     # deconv5_2
     with tf.variable_scope('deconv5_2') as scope:
         kernel = tf.Variable(tf.truncated_normal([5, 5, 512, 512], dtype=tf.float32,
@@ -260,10 +262,11 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[512], dtype=tf.float32),
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        deconv5_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=encoder_training), name='deconv5_2')
+        deconv5_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=encoder_training),
+                               name='deconv5_2')
 
     # deconv4_1/unpooling
-    deconv4_1 = unpool(deconv5_2, arg4,name='unpool4')
+    deconv4_1 = unpool(deconv5_2, arg4, name='unpool4')
 
     # deconv4_2
     with tf.variable_scope('deconv4_2') as scope:
@@ -273,10 +276,11 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[256], dtype=tf.float32),
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        deconv4_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=encoder_training), name='deconv4_2')
+        deconv4_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=encoder_training),
+                               name='deconv4_2')
 
     # deconv3_1/unpooling
-    deconv3_1 = unpool(deconv4_2, arg3,name='unpool3')
+    deconv3_1 = unpool(deconv4_2, arg3, name='unpool3')
 
     # deconv3_2
     with tf.variable_scope('deconv3_2') as scope:
@@ -286,10 +290,11 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[128], dtype=tf.float32),
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        deconv3_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=encoder_training), name='deconv3_2')
+        deconv3_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=encoder_training),
+                               name='deconv3_2')
 
     # deconv2_1/unpooling
-    deconv2_1 = unpool(deconv3_2, arg2,name='unpool2')
+    deconv2_1 = unpool(deconv3_2, arg2, name='unpool2')
 
     # deconv2_2
     with tf.variable_scope('deconv2_2') as scope:
@@ -299,10 +304,11 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        deconv2_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=encoder_training), name='deconv2_2')
+        deconv2_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=encoder_training),
+                               name='deconv2_2')
 
     # deconv1_1/unpooling
-    deconv1_1 = unpool(deconv2_2, arg1,name='unpool1')
+    deconv1_1 = unpool(deconv2_2, arg1, name='unpool1')
 
     # deconv1_2
     with tf.variable_scope('deconv1_2') as scope:
@@ -312,7 +318,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        deconv1_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=encoder_training), name='deconv1_2')
+        deconv1_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=encoder_training),
+                               name='deconv1_2')
     # pred_alpha_matte
     with tf.variable_scope('pred_alpha') as scope:
         kernel = tf.Variable(tf.truncated_normal([5, 5, 64, 1], dtype=tf.float32,
@@ -323,7 +330,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         enc_dec_pred = tf.nn.sigmoid(out)
 
-    _layer_sum("enc_dec_pred",enc_dec_pred)
+    _layer_sum("enc_dec_pred", enc_dec_pred)
 
     # refinement
 
@@ -335,7 +342,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
                              trainable=refinement_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        refinement1 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=refinement_training), name='refinement_conv1_2')
+        refinement1 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=refinement_training),
+                                 name='refinement_conv1_2')
     with tf.variable_scope('refinement_conv2') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 64, 64], dtype=tf.float32,
                                                  stddev=1e-1), name='weights', trainable=refinement_training)
@@ -343,7 +351,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
                              trainable=refinement_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        refinement2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=refinement_training), name='refinement_conv2_2')
+        refinement2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=refinement_training),
+                                 name='refinement_conv2_2')
     with tf.variable_scope('refinement_conv3') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 64, 64], dtype=tf.float32,
                                                  stddev=1e-1), name='weights', trainable=refinement_training)
@@ -351,7 +360,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         biases = tf.Variable(tf.constant(0.0, shape=[64], dtype=tf.float32),
                              trainable=refinement_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
-        refinement3 = tf.nn.relu(tf.layers.batch_normalization(out, training=training,trainable=refinement_training), name='refinement_conv3_2')
+        refinement3 = tf.nn.relu(tf.layers.batch_normalization(out, training=training, trainable=refinement_training),
+                                 name='refinement_conv3_2')
     with tf.variable_scope('refinement_conv4') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 64, 1], dtype=tf.float32,
                                                  stddev=1e-1), name='weights', trainable=refinement_training)
@@ -370,10 +380,10 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     refinement_predictions = tf.where(tf.equal(trimap_input, 128), refinement_pred, trimap_input / 255.0)
     enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
 
-
     evaluation_hooks = None
     metrics = {}
     hooks = []
+    export_outputs = None
     if mode != tf.estimator.ModeKeys.PREDICT:
         original_background = features['original_background']
         foreground_input = features['foreground']
@@ -405,19 +415,26 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
             tf.summary.scalar(name + '_total_loss', total_loss)
             total_loss_eval = tf.metrics.mean(total_loss)
             metrics[name + '_total_loss'] = total_loss_eval
-            return total_loss,pred_rgb
+            return total_loss, pred_rgb
 
-        refinement_loss,refinement_result = _loss('refinement', refinement_pred, refinement_predictions)
-        enc_dec_loss,enc_dec_result = _loss('enc_dec', enc_dec_pred, enc_dec_predictions)
+        refinement_loss, refinement_result = _loss('refinement', refinement_pred, refinement_predictions)
+        enc_dec_loss, enc_dec_result = _loss('enc_dec', enc_dec_pred, enc_dec_predictions)
 
-        enc_dec_mask_report = tf.concat([trimap_input,enc_dec_pred*255,enc_dec_predictions*255,ground_truth*255],axis=2)
-        tf.summary.image('encdec_mask_Trimap_EncDec_Prediction_GroundTruth',enc_dec_mask_report,max_outputs=3)
-        refinement_mask_report = tf.concat([trimap_input,refinement_pred*255,refinement_predictions*255,ground_truth*255],axis=2)
-        tf.summary.image('refinement_mask_Trimap_Refinement_Prediction_GroundTruth',refinement_mask_report,max_outputs=3)
-        enc_dec_result_report=tf.concat([foreground_input,original_background,enc_dec_result,raw_comp_background],axis=2)
-        tf.summary.image('encdec_result_Foreground_Background_Prediction_GroundTruth',enc_dec_result_report,max_outputs=3)
-        refinement_result_report=tf.concat([foreground_input,original_background,refinement_result,raw_comp_background],axis=2)
-        tf.summary.image('refinement_result_Foreground_Background_Prediction_GroundTruth',refinement_result_report,max_outputs=3)
+        enc_dec_mask_report = tf.concat(
+            [trimap_input, enc_dec_pred * 255, enc_dec_predictions * 255, ground_truth * 255], axis=2)
+        tf.summary.image('encdec_mask_Trimap_EncDec_Prediction_GroundTruth', enc_dec_mask_report, max_outputs=3)
+        refinement_mask_report = tf.concat(
+            [trimap_input, refinement_pred * 255, refinement_predictions * 255, ground_truth * 255], axis=2)
+        tf.summary.image('refinement_mask_Trimap_Refinement_Prediction_GroundTruth', refinement_mask_report,
+                         max_outputs=3)
+        enc_dec_result_report = tf.concat([foreground_input, original_background, enc_dec_result, raw_comp_background],
+                                          axis=2)
+        tf.summary.image('encdec_result_Foreground_Background_Prediction_GroundTruth', enc_dec_result_report,
+                         max_outputs=3)
+        refinement_result_report = tf.concat(
+            [foreground_input, original_background, refinement_result, raw_comp_background], axis=2)
+        tf.summary.image('refinement_result_Foreground_Background_Prediction_GroundTruth', refinement_result_report,
+                         max_outputs=3)
 
         if refinement_training:
             total_loss = refinement_loss
@@ -428,10 +445,13 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         with tf.control_dependencies(update_ops):
             train_op = opt.minimize(total_loss, global_step=tf.train.get_or_create_global_step())
         if params['vgg16'] is not None:
-            hooks.append(InitVariablesHook(params['vgg16'],en_parameters))
+            hooks.append(InitVariablesHook(params['vgg16'], en_parameters))
     else:
         train_op = None
         total_loss = None
+        export_outputs = {
+            tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: tf.estimator.export.PredictOutput(
+                refinement_predictions)}
     return tf.estimator.EstimatorSpec(
         mode=mode,
         eval_metric_ops=metrics,
@@ -439,7 +459,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         loss=total_loss,
         training_hooks=hooks,
         evaluation_hooks=evaluation_hooks,
-        # export_outputs=export_outputs,
+        export_outputs=export_outputs,
         train_op=train_op)
 
 
@@ -470,9 +490,8 @@ class DeepMatting(tf.estimator.Estimator):
         )
 
 
-
 class InitVariablesHook(session_run_hook.SessionRunHook):
-    def __init__(self, model_path,en_parameters):
+    def __init__(self, model_path, en_parameters):
         self._model_path = model_path
         self._en_parameters = en_parameters
         self._ops = []
@@ -485,17 +504,18 @@ class InitVariablesHook(session_run_hook.SessionRunHook):
             if i == 28:
                 break
             if k == 'conv1_1_W':
-                self._ops.append(self._en_parameters[i].assign(np.concatenate([weights[k],np.zeros([3,3,1,64])],axis = 2)))
+                self._ops.append(
+                    self._en_parameters[i].assign(np.concatenate([weights[k], np.zeros([3, 3, 1, 64])], axis=2)))
             else:
-                if k=='fc6_W':
-                    tmp = np.reshape(weights[k],(7,7,512,4096))
+                if k == 'fc6_W':
+                    tmp = np.reshape(weights[k], (7, 7, 512, 4096))
                     self._ops.append(self._en_parameters[i].assign(tmp))
                 else:
                     self._ops.append(self._en_parameters[i].assign(weights[k]))
 
     def after_create_session(self, session, coord):
         logging.info('Do VGG16 Init')
-        if len(self._ops)>0:
+        if len(self._ops) > 0:
             session.run(self._ops)
 
     def before_run(self, run_context):  # pylint: disable=unused-argument

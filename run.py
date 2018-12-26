@@ -118,6 +118,11 @@ def parse_args():
         const=True, default=False,
         help='Do refinement Training',
     )
+    parser.add_argument(
+        '--warm_start_from',
+        default=None,
+        help='warm start',
+    )
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.set_defaults(worker=False)
@@ -185,6 +190,7 @@ def train(mode, checkpoint_dir, params):
         params=params,
         model_dir=checkpoint_dir,
         config=conf,
+        warm_start_from=params['warm_start_from']
     )
     logging.info("Start %s mode", mode)
     if mode == 'train':
@@ -233,6 +239,7 @@ def main():
         'refinement': args.refinement,
         'enc_dec':args.enc_dec,
         'vgg16':args.vgg16,
+        'warm_start_from':args.warm_start_from,
     }
     logging.info('args.refinement {}'.format(args.refinement))
     logging.info('enc_dec {}'.format(args.enc_dec))

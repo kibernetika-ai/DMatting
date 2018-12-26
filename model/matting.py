@@ -485,9 +485,6 @@ class InitVariablesHook(session_run_hook.SessionRunHook):
                     self._ops.append(self._en_parameters[i].assign(tmp))
                 else:
                     self._ops.append(self._en_parameters[i].assign(weights[k]))
-        for v in self._variables:
-            logging.info('Init set {} to {}'.format(v[0],v[2]))
-            self._ops.append(v[1].assign(v[2]))
 
     def after_create_session(self, session, coord):
         logging.info('Do VGG16 Init')

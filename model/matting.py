@@ -9,6 +9,7 @@ import numpy as np
 
 
 def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
+    logging.info('{} pool:{} ind:{}',pool,ind)
     with tf.variable_scope(name) as scope:
         input_shape = tf.shape(pool)
         output_shape = [input_shape[0], input_shape[1] * ksize[1], input_shape[2] * ksize[2], input_shape[3]]
@@ -52,9 +53,10 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     logging.info("Train refinement {}".format(refinement_training))
     training = (mode == tf.estimator.ModeKeys.TRAIN)
     def _layer_sum(name,l):
-        tf.summary.scalar(name+"_0",tf.reduce_sum(l[0]))
-        tf.summary.scalar(name+"_1",tf.reduce_sum(l[1]))
-        tf.summary.scalar(name+"_2",tf.reduce_sum(l[2]))
+        #tf.summary.scalar(name+"_0",tf.reduce_sum(l[0]))
+        ##tf.summary.scalar(name+"_1",tf.reduce_sum(l[1]))
+        #tf.summary.scalar(name+"_2",tf.reduce_sum(l[2]))
+        return
 
     _layer_sum("rgb_input",rgb_input)
     _layer_sum("rgb_input",trimap_input)

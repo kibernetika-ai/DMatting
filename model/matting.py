@@ -40,7 +40,6 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     ground_truth = labels
     rgb_input = features['input']
     trimap_input = features['trimap']
-    ground_truth.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
     rgb_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
     trimap_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
     b_input = tf.concat([rgb_input, trimap_input], 3)
@@ -388,6 +387,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         original_background = features['original_background']
         foreground_input = features['foreground']
         raw_comp_background = features['raw_comp_background']
+        ground_truth.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
         trimap_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
         original_background.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
         foreground_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])

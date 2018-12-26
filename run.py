@@ -8,6 +8,13 @@ from model.data import matting_input_fn
 import json
 
 
+def args_str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def parse_args():
     conf_parser = argparse.ArgumentParser(
@@ -100,15 +107,15 @@ def parse_args():
     )
     parser.add_argument(
         '--enc_dec',
-        type=bool,
-        default=True,
+        type=args_str2bool, nargs='?',
+        const=True, default=True,
         help='Do Encoder Decoder Training',
     )
 
     parser.add_argument(
         '--refinement',
-        type=bool,
-        default=False,
+        type=args_str2bool, nargs='?',
+        const=True, default=False,
         help='Do refinement Training',
     )
 
@@ -227,7 +234,8 @@ def main():
         'enc_dec':args.enc_dec,
         'vgg16':args.vgg16,
     }
-
+    logging.info('args.refinement {}'.format(args.refinement))
+    logging.info('enc_dec {}'.format(args.enc_dec))
     if not tf.gfile.Exists(checkpoint_dir):
         tf.gfile.MakeDirs(checkpoint_dir)
 

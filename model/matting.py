@@ -39,8 +39,6 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     ground_truth = labels
     rgb_input = features['input']
     trimap_input = features['trimap']
-    tf.summary.image('rgb_input', rgb_input, max_outputs=5)
-    tf.summary.image('trimap_input', trimap_input, max_outputs=5)
     ground_truth.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
     rgb_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
     trimap_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
@@ -324,7 +322,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         enc_dec_pred = tf.nn.sigmoid(out)
 
     _layer_sum("enc_dec_pred",enc_dec_pred)
-    tf.summary.image('enc_dec_pred', enc_dec_pred, max_outputs=5)
+
     # refinement
 
     x = tf.concat([rgb_input, enc_dec_pred], 3)
@@ -364,14 +362,12 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     wl = tf.where(tf.equal(trimap_input, 128),
                   tf.fill([params['batch_size'], params['image_height'], params['image_width'], 1], 1.),
                   tf.fill([params['batch_size'], params['image_height'], params['image_width'], 1], 0.))
-    unknown_region_size = tf.reduce_sum(wl)
 
-    tf.summary.image('refinement_pred', refinement_pred, max_outputs=5)
+    unknown_region_size = tf.reduce_sum(wl)
 
     refinement_predictions = tf.where(tf.equal(trimap_input, 128), refinement_pred, trimap_input / 255.0)
     enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
-    tf.summary.image('final_refinement', refinement_predictions, max_outputs=5)
-    tf.summary.image('final_enc_dec', enc_dec_predictions, max_outputs=5)
+
 
     evaluation_hooks = None
     metrics = {}
@@ -379,12 +375,11 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     if mode != tf.estimator.ModeKeys.PREDICT:
         original_background = features['original_background']
         foreground_input = features['foreground']
-        raw_background = features['row_background']
-        tf.summary.image('raw_background', raw_background, max_outputs=5)
+        raw_comp_background = features['raw_comp_background']
         trimap_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 1])
         original_background.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
         foreground_input.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
-        raw_background.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
+        raw_comp_background.set_shape([params['batch_size'], params['image_height'], params['image_width'], 3])
         bgs = tf.unstack(original_background)
         fgs = tf.unstack(foreground_input)
 
@@ -395,25 +390,33 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
             for i in range(params['batch_size']):
                 p_rgb.append(l_matte[i] * fgs[i] + (tf.constant(1.) - l_matte[i]) * bgs[i])
             pred_rgb = tf.stack(p_rgb)
-            tf.summary.image(name + '_pred_rgb', pred_rgb, max_outputs=5)
-            c_diff = tf.sqrt(tf.square(pred_rgb - raw_background) + 1e-12) / 255.0
+            c_diff = tf.sqrt(tf.square(pred_rgb - raw_comp_background) + 1e-12) / 255.0
             alpha_loss = tf.reduce_sum(alpha_diff * wl) / unknown_region_size
             alpha_loss_eval = tf.metrics.mean(alpha_loss)
             metrics[name + '_alpha_loss'] = alpha_loss_eval
             comp_loss = tf.reduce_sum(c_diff * wl) / unknown_region_size
             comp_loss_eval = tf.metrics.mean(comp_loss)
             metrics[name + '_comp_loss'] = comp_loss_eval
-
             tf.summary.scalar(name + '_alpha_loss', alpha_loss)
             tf.summary.scalar(name + '_comp_loss', comp_loss)
             total_loss = (alpha_loss + comp_loss) * 0.5
             tf.summary.scalar(name + '_total_loss', total_loss)
             total_loss_eval = tf.metrics.mean(total_loss)
             metrics[name + '_total_loss'] = total_loss_eval
-            return total_loss
+            return total_loss,pred_rgb
 
-        refinement_loss = _loss('refinement', refinement_pred, refinement_predictions)
-        enc_dec_loss = _loss('enc_dec', enc_dec_pred, enc_dec_predictions)
+        refinement_loss,refinement_result = _loss('refinement', refinement_pred, refinement_predictions)
+        enc_dec_loss,enc_dec_result = _loss('enc_dec', enc_dec_pred, enc_dec_predictions)
+
+        enc_dec_mask_report = tf.concat([trimap_input,enc_dec_pred*255,enc_dec_predictions*255,ground_truth*255],axis=2)
+        tf.summary.image('encdec_mask_Trimap_EncDec_Prediction_GroundTruth',enc_dec_mask_report,max_outputs=3)
+        refinement_mask_report = tf.concat([trimap_input,refinement_pred*255,refinement_predictions*255,ground_truth*255],axis=2)
+        tf.summary.image('refinement_mask_Trimap_Refinement_Prediction_GroundTruth',refinement_mask_report,max_outputs=3)
+        enc_dec_result_report=tf.concat([foreground_input,original_background,enc_dec_result,raw_comp_background],axis=2)
+        tf.summary.image('encdec_result_Foreground_Background_Prediction_GroundTruth',enc_dec_result_report,max_outputs=3)
+        refinement_result_report=tf.concat([foreground_input,original_background,refinement_result,raw_comp_background],axis=2)
+        tf.summary.image('encdec_result_Foreground_Background_Prediction_GroundTruth',refinement_result_report,max_outputs=3)
+
         if refinement_training:
             total_loss = refinement_loss
         else:

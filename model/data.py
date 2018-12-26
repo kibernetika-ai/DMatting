@@ -107,8 +107,6 @@ def matting_input_fn(params):
                 for _ in range(background_count):
                     background = random.choice(backgrounds)
                     background = np.array(Image.open(background).convert('RGB'))
-                    # print(background.shape)
-                    # background = norm_background(background, original_foreground.shape[0], original_foreground.shape[1])
                     crop_size = random.choice(different_sizes)
                     trimap = generate_trimap(alpha)
                     x, y = random_choice(trimap, crop_size)
@@ -118,22 +116,24 @@ def matting_input_fn(params):
                     trimap = safe_crop(trimap, x, y, crop_size)
                     train_alpha = np.expand_dims(train_alpha, 2).astype(np.float32) / 255
                     trimap = np.expand_dims(trimap, 2).astype(np.float32)
-                    foreground = train_alpha * foreground.astype(np.float32)
+                    if np.sum(np.equal(trimap,unknown_code).astype(np.int32)) < 1:
+                        continue
                     background = background.astype(np.float32)
-                    raw_background = foreground + (1. - train_alpha) * background
-                    reduceced_background = raw_background - g_mean
+                    foreground = foreground.astype(np.float32)
+                    raw_comp_background = train_alpha * foreground + (1. - train_alpha) * background
+                    reduceced_comp_background = raw_comp_background - g_mean
                     if np.random.random_sample() > 0.5:
-                        reduceced_background = np.fliplr(reduceced_background)
-                        raw_background = np.fliplr(raw_background)
+                        reduceced_comp_background = np.fliplr(reduceced_comp_background)
+                        raw_comp_background = np.fliplr(raw_comp_background)
                         background = np.fliplr(background)
                         train_alpha = np.fliplr(train_alpha)
                         trimap = np.fliplr(trimap)
                         foreground = np.fliplr(foreground)
                     yield {
-                              'input': reduceced_background,
+                              'input': reduceced_comp_background,
                               'trimap': trimap,
-                              'row_background': raw_background,
                               'original_background': background,
+                              'raw_comp_background': raw_comp_background,
                               'foreground': foreground,
                           }, train_alpha
 
@@ -142,17 +142,17 @@ def matting_input_fn(params):
                                                 {
                                                     'input': tf.float32,
                                                     'trimap': tf.float32,
-                                                    'row_background': tf.float32,
                                                     'original_background': tf.float32,
+                                                    'raw_comp_background': tf.float32,
                                                     'foreground': tf.float32
                                                 }, tf.float32),
                                             (
                                                 {
                                                     'input': tf.TensorShape([320, 320, 3]),
                                                     'trimap': tf.TensorShape([320, 320, 1]),
-                                                    'row_background': tf.TensorShape(
-                                                        [320, 320, 3]),
                                                     'original_background': tf.TensorShape(
+                                                        [320, 320, 3]),
+                                                    'raw_comp_background': tf.TensorShape(
                                                         [320, 320, 3]),
                                                     'foreground': tf.TensorShape([320, 320, 3])},
                                                 tf.TensorShape(

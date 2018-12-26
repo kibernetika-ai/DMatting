@@ -48,6 +48,9 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         tf.summary.scalar(name+"_0",tf.reduce_sum(l[0]))
         tf.summary.scalar(name+"_1",tf.reduce_sum(l[1]))
         tf.summary.scalar(name+"_2",tf.reduce_sum(l[2]))
+
+    _layer_sum("rgb_input",rgb_input)
+    _layer_sum("rgb_input",trimap_input)
     # conv1_1
     with tf.name_scope('conv1_1') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 4, 64], dtype=tf.float32,
@@ -236,6 +239,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         deconv6 = tf.nn.relu(tf.layers.batch_normalization(out, training=training), name='deconv6')
 
+    _layer_sum("deconv6",deconv6)
     # deconv5_1/unpooling
     deconv5_1 = unpool(deconv6, pool_parameters[-1])
     _layer_sum("deconv5_1",deconv5_1)

@@ -42,6 +42,20 @@ def norm_background(background, fh, fw):
     return background[y:y + fh, x:x + fw]
 
 
+def random_crop(img):
+    x = max(0, img.shape[1] - 320)
+    y = max(0, img.shape[0] - 320)
+    if x > 0:
+        x = np.random.randint(0, x)
+    if y > 0:
+        y = np.random.randint(0, y)
+    img = img[y:min(y + 320, img.shape[0]), x:min(x + 320, img.shape[1])]
+
+    if img.shape != (320, 320):
+        ret = cv.resize(img, dsize=(320, 320), interpolation=cv.INTER_NEAREST)
+    return ret
+
+
 def safe_crop(mat, x, y, crop_size=(320, 320)):
     crop_height, crop_width = crop_size
     if len(mat.shape) == 2:
@@ -93,12 +107,12 @@ def matting_input_fn(params):
                 for _ in range(background_count):
                     background = random.choice(backgrounds)
                     background = np.array(Image.open(background).convert('RGB'))
-                    #print(background.shape)
-                    background = norm_background(background, original_foreground.shape[0], original_foreground.shape[1])
+                    # print(background.shape)
+                    # background = norm_background(background, original_foreground.shape[0], original_foreground.shape[1])
                     crop_size = random.choice(different_sizes)
                     trimap = generate_trimap(alpha)
                     x, y = random_choice(trimap, crop_size)
-                    background = safe_crop(background, x, y, crop_size)
+                    background = random_crop(background)
                     foreground = safe_crop(original_foreground, x, y, crop_size)
                     train_alpha = safe_crop(alpha, x, y, crop_size)
                     trimap = safe_crop(trimap, x, y, crop_size)

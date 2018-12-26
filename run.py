@@ -93,7 +93,11 @@ def parse_args():
         default=None,
         help='Location of training files or evaluation files',
     )
-
+    parser.add_argument(
+        '--vgg16',
+        default=None,
+        help='Location to pretrained vgg16',
+    )
     parser.add_argument(
         '--enc_dec',
         type=bool,
@@ -221,6 +225,7 @@ def main():
         'image_width': 320,
         'refinement': args.refinement,
         'enc_dec':args.enc_dec,
+        'vgg16':args.vgg16,
     }
 
     if not tf.gfile.Exists(checkpoint_dir):

@@ -3,7 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python.training import session_run_hook
 import logging
+import numpy as np
 
 
 def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
@@ -57,6 +59,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     _layer_sum("rgb_input",rgb_input)
     _layer_sum("rgb_input",trimap_input)
     # conv1_1
+    en_parameters = []
     with tf.name_scope('conv1_1') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 4, 64], dtype=tf.float32,
                                                  stddev=1e-1), name='weights', trainable=encoder_training)
@@ -65,6 +68,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              name='biases', trainable=encoder_training)
         out = tf.nn.bias_add(conv, biases)
         conv1_1 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
     _layer_sum("conv1_1",conv1_1)
     # conv1_2
     with tf.name_scope('conv1_2') as scope:
@@ -75,6 +79,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv1_2 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
+
     _layer_sum("conv1_2",conv1_2)
     # pool1
     pool1, arg1 = tf.nn.max_pool_with_argmax(conv1_2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
@@ -90,6 +96,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         out = tf.nn.bias_add(conv, biases)
         conv2_1 = tf.nn.relu(out, name=scope)
 
+        en_parameters += [kernel, biases]
+
     # conv2_2
     with tf.name_scope('conv2_2') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 128, 128], dtype=tf.float32,
@@ -99,6 +107,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv2_2 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # pool2
     pool2, arg2 = tf.nn.max_pool_with_argmax(conv2_2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
@@ -113,6 +122,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv3_1 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # conv3_2
     with tf.name_scope('conv3_2') as scope:
@@ -123,6 +133,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv3_2 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # conv3_3
     with tf.name_scope('conv3_3') as scope:
@@ -133,6 +144,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv3_3 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # pool3
     pool3, arg3 = tf.nn.max_pool_with_argmax(conv3_3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
@@ -147,6 +159,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv4_1 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # conv4_2
     with tf.name_scope('conv4_2') as scope:
@@ -157,6 +170,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv4_2 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
 
     # conv4_3
@@ -168,6 +182,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv4_3 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # pool4
     pool4, arg4 = tf.nn.max_pool_with_argmax(conv4_3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
@@ -182,6 +197,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv5_1 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # conv5_2
     with tf.name_scope('conv5_2') as scope:
@@ -192,6 +208,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv5_2 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # conv5_3
     with tf.name_scope('conv5_3') as scope:
@@ -202,6 +219,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv5_3 = tf.nn.relu(out, name=scope)
+        en_parameters += [kernel, biases]
 
     # pool5
     pool5, arg5 = tf.nn.max_pool_with_argmax(conv5_3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME',
@@ -215,6 +233,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
                              trainable=encoder_training, name='biases')
         out = tf.nn.bias_add(conv, biases)
         conv6_1 = tf.nn.relu(out, name='conv6_1')
+        en_parameters += [kernel, biases]
 
     _layer_sum("conv6_1",conv6_1)
     # deconv6
@@ -229,7 +248,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
 
     _layer_sum("deconv6",deconv6)
     # deconv5_1/unpooling
-    deconv5_1 = unpool(deconv6, arg5)
+    deconv5_1 = unpool(deconv6, arg5,name='unpool5')
     _layer_sum("deconv5_1",deconv5_1)
     # deconv5_2
     with tf.variable_scope('deconv5_2') as scope:
@@ -242,7 +261,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         deconv5_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training), name='deconv5_2')
 
     # deconv4_1/unpooling
-    deconv4_1 = unpool(deconv5_2, arg4)
+    deconv4_1 = unpool(deconv5_2, arg4,name='unpool4')
 
     # deconv4_2
     with tf.variable_scope('deconv4_2') as scope:
@@ -255,7 +274,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         deconv4_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training), name='deconv4_2')
 
     # deconv3_1/unpooling
-    deconv3_1 = unpool(deconv4_2, arg3)
+    deconv3_1 = unpool(deconv4_2, arg3,name='unpool3')
 
     # deconv3_2
     with tf.variable_scope('deconv3_2') as scope:
@@ -268,7 +287,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         deconv3_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training), name='deconv3_2')
 
     # deconv2_1/unpooling
-    deconv2_1 = unpool(deconv3_2, arg2)
+    deconv2_1 = unpool(deconv3_2, arg2,name='unpool2')
 
     # deconv2_2
     with tf.variable_scope('deconv2_2') as scope:
@@ -281,7 +300,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         deconv2_2 = tf.nn.relu(tf.layers.batch_normalization(out, training=training), name='deconv2_2')
 
     # deconv1_1/unpooling
-    deconv1_1 = unpool(deconv2_2, arg1)
+    deconv1_1 = unpool(deconv2_2, arg1,name='unpool1')
 
     # deconv1_2
     with tf.variable_scope('deconv1_2') as scope:
@@ -354,6 +373,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
 
     evaluation_hooks = None
     metrics = {}
+    hooks = []
     if mode != tf.estimator.ModeKeys.PREDICT:
         original_background = features['original_background']
         foreground_input = features['foreground']
@@ -400,16 +420,17 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             train_op = opt.minimize(total_loss, global_step=tf.train.get_or_create_global_step())
+        if params['vgg16'] is not None:
+            hooks.append(InitVariablesHook(params['vgg16'],en_parameters))
     else:
         train_op = None
         total_loss = None
-
     return tf.estimator.EstimatorSpec(
         mode=mode,
         eval_metric_ops=metrics,
         predictions=refinement_predictions,
         loss=total_loss,
-        training_hooks=None,
+        training_hooks=hooks,
         evaluation_hooks=evaluation_hooks,
         # export_outputs=export_outputs,
         train_op=train_op)
@@ -440,3 +461,41 @@ class DeepMatting(tf.estimator.Estimator):
             params=params,
             warm_start_from=warm_start_from
         )
+
+
+
+class InitVariablesHook(session_run_hook.SessionRunHook):
+    def __init__(self, model_path,en_parameters):
+        self._model_path = model_path
+        self._en_parameters = en_parameters
+        self._ops = []
+
+    def begin(self):
+        logging.info('Begin VGG16 Init')
+        weights = np.load(self._model_path)
+        keys = sorted(weights.keys())
+        for i, k in enumerate(keys):
+            if i == 28:
+                break
+            if k == 'conv1_1_W':
+                self._ops.append(self._en_parameters[i].assign(np.concatenate([weights[k],np.zeros([3,3,1,64])],axis = 2)))
+            else:
+                if k=='fc6_W':
+                    tmp = np.reshape(weights[k],(7,7,512,4096))
+                    self._ops.append(self._en_parameters[i].assign(tmp))
+                else:
+                    self._ops.append(self._en_parameters[i].assign(weights[k]))
+        for v in self._variables:
+            logging.info('Init set {} to {}'.format(v[0],v[2]))
+            self._ops.append(v[1].assign(v[2]))
+
+    def after_create_session(self, session, coord):
+        logging.info('Do VGG16 Init')
+        if len(self._ops)>0:
+            session.run(self._ops)
+
+    def before_run(self, run_context):  # pylint: disable=unused-argument
+        return None
+
+    def after_run(self, run_context, run_values):
+        None

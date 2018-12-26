@@ -415,7 +415,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         enc_dec_result_report=tf.concat([foreground_input,original_background,enc_dec_result,raw_comp_background],axis=2)
         tf.summary.image('encdec_result_Foreground_Background_Prediction_GroundTruth',enc_dec_result_report,max_outputs=3)
         refinement_result_report=tf.concat([foreground_input,original_background,refinement_result,raw_comp_background],axis=2)
-        tf.summary.image('encdec_result_Foreground_Background_Prediction_GroundTruth',refinement_result_report,max_outputs=3)
+        tf.summary.image('refinement_result_Foreground_Background_Prediction_GroundTruth',refinement_result_report,max_outputs=3)
 
         if refinement_training:
             total_loss = refinement_loss

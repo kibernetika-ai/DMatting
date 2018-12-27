@@ -62,5 +62,5 @@ def postprocess(outputs, ctx):
     result = (mask_image*image).astype(np.uint8)
     image_bytes = io.BytesIO()
     Image.fromarray(result).save(image_bytes, format='PNG')
-    outputs['output'] = image_bytes.getvalue()
+    outputs['image'] = image_bytes.getvalue()
     return outputs

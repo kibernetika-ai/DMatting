@@ -47,6 +47,8 @@ def preprocess(inputs, ctx):
 def knn_matte(img, trimap, mylambda=100):
     [m, n, c] = img.shape
     img, trimap = img/255.0, trimap/255.0
+    trimap = np.expand_dims(trimap,2)
+    trimap = np.concatenate((trimap,trimap,trimap),axis=2)
     foreground = (trimap > 0.99).astype(int)
     background = (trimap < 0.01).astype(int)
     all_constraints = foreground + background

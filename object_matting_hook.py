@@ -136,8 +136,8 @@ def postprocess(outputs, ctx):
     if ctx.effect == 'Remove background':
         image = ctx.np_image.astype(np.float32)
         image = np.expand_dims(total_mask,2)*image
-        total_mask = np.uint8(total_mask*255)
-        image = np.dstack((image, total_mask))
+        #total_mask = np.uint8(total_mask*255)
+        #image = np.dstack((image, total_mask))
         image = Image.fromarray(np.uint8(image))
     elif ctx.effect == "Mask":
         total_mask = total_mask*255

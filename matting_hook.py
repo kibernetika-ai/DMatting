@@ -30,19 +30,29 @@ def generate_trimap(alpha):
     return trimap
 
 def preprocess(inputs, ctx):
-    logging.info('Inputs test: {}'.format(inputs['test_opt'][0].decode("utf-8")))
-    image = inputs.get('image')
-    if image is None:
-        raise RuntimeError('Missing "image" key in inputs. Provide an image in "image" key')
-    mask = inputs.get('mask')
-    if mask is None:
-        raise RuntimeError('Missing "mask" key in inputs. Provide an mask in "mask" key')
+    in_type = 'image'
+    if inputs.get('in_type',None) is not None:
+        in_type = 'np'
+    ctx.in_type = in_type
+    if in_type == 'np':
+        image = inputs['image'][0]
+        image = Image.fromarray(image)
+        mask = inputs['mask'][0]
+        mask = Image.fromarray(mask)
+    else:
+        image = inputs.get('image')
+        if image is None:
+            raise RuntimeError('Missing "image" key in inputs. Provide an image in "image" key')
+        mask = inputs.get('mask')
+        if mask is None:
+            raise RuntimeError('Missing "mask" key in inputs. Provide an mask in "mask" key')
+        image = Image.open(io.BytesIO(image[0]))
+        image = image.convert('RGB')
+        mask = Image.open(io.BytesIO(mask[0]))
+
     ctx.interpolation = interploations[int(inputs.get('interpolation', 0))]
-    image = Image.open(io.BytesIO(image[0]))
-    image = image.convert('RGB')
     ctx.image = image
     image = image.resize((320,320),ctx.interpolation)
-    mask = Image.open(io.BytesIO(mask[0]))
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
     #np_mask[np.less(np_mask,128)]=0
@@ -65,7 +75,10 @@ def postprocess(outputs, ctx):
     mask_image = np.expand_dims(mask_image,2)
     image = np.array(ctx.image).astype(np.float32)
     result = (mask_image*image).astype(np.uint8)
-    image_bytes = io.BytesIO()
-    Image.fromarray(result).save(image_bytes, format='PNG')
-    outputs['image'] = image_bytes.getvalue()
+    if ctx.in_type=='np':
+        outputs['image'] = result
+    else:
+        image_bytes = io.BytesIO()
+        Image.fromarray(result).save(image_bytes, format='PNG')
+        outputs['image'] = image_bytes.getvalue()
     return outputs

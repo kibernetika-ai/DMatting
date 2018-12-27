@@ -6,7 +6,9 @@ from PIL import Image
 from PIL import ImageFilter
 import sklearn.neighbors
 import scipy.sparse
-
+from mlboardclient.api import client
+from ml_serving.utils import helpers
+import  os
 LOG = logging.getLogger(__name__)
 
 
@@ -21,6 +23,7 @@ interploations = {
 obj_classes = {
     'Person':1
 }
+
 def preprocess(inputs, ctx):
     image = inputs.get('inputs')
     if image is None:
@@ -43,6 +46,9 @@ def preprocess(inputs, ctx):
     ctx.matting = inputs.get('matting', ['DEFAULT'])[0].decode("utf-8")#DEFAULT,KNN,NONE
     return {'inputs': [np_image]}
 
+def kibernetika_matte(img, trimap):
+    outputs = helpers.predict_grpc({'image': np.expand_dims(img,0),'mask': np.expand_dims(trimap,0),'in_type':np.array([1],dtype=np.int32)},'deepmatting-0-0-1:9000')
+    return outputs['image']
 
 def knn_matte(img, trimap, mylambda=100):
     [m, n, c] = img.shape
@@ -125,6 +131,9 @@ def postprocess(outputs, ctx):
         total_mask = knn_matte(ctx.np_image,total_mask*255)
     elif ctx.matting == 'DEFAULT':
         total_mask[np.less(total_mask, ctx.pixel_threshold)]=0
+    elif ctx.matting == 'Kibernetika':
+        total_mask = kibernetika_matte(ctx.np_image,np.uint8(total_mask*255))
+        total_mask = total_mask/255
 
     if ctx.effect == 'Remove background':
         image = ctx.np_image.astype(np.float32)

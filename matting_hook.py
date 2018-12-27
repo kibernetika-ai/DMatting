@@ -54,7 +54,7 @@ def preprocess(inputs, ctx):
 
 def postprocess(outputs, ctx):
     logging.info('Outputs: {}'.format(outputs))
-    mask = outputs['refinement_predictions']*255
+    mask = outputs['output']*255
     mask_image = Image.fromarray((mask*255).astype(np.uint8))
     mask_image = mask_image.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
     mask_image = np.array(mask_image).astype(np.float32)/255

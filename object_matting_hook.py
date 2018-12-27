@@ -75,6 +75,10 @@ def knn_matte(img, trimap, mylambda=100):
         alpha = np.minimum(np.maximum(x[0], 0), 1).reshape(m, n)
     return alpha
 
+def rgb2gray(rgb):
+    gray = np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
+    return np.stack([gray,gray,gray],axis=2)
+
 def postprocess(outputs, ctx):
     num_detection = int(outputs['num_detections'][0])
 
@@ -136,7 +140,10 @@ def postprocess(outputs, ctx):
         mask = np.expand_dims(total_mask,2)
         foreground = mask*image
         radius = min(max(ctx.blur_radius,2),10)
-        background = ctx.image.filter(ImageFilter.GaussianBlur(radius=radius))
+        if ctx.effect == 'Grey':
+            background = rgb2gray(ctx.np_image)
+        else:
+            background = ctx.image.filter(ImageFilter.GaussianBlur(radius=radius))
         background = (1.0-mask)*np.array(background,dtype=np.float32)
         image = foreground+background
         image = Image.fromarray(np.uint8(image))

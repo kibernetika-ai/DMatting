@@ -58,6 +58,8 @@ def random_crop(img):
 
 def safe_crop(mat, x, y, crop_size=(320, 320)):
     crop_height, crop_width = crop_size
+    if crop_height == 0:
+        return cv.resize(mat, dsize=(320, 320), interpolation=cv.INTER_NEAREST)
     if len(mat.shape) == 2:
         ret = np.zeros((crop_height, crop_width), np.float32)
     else:
@@ -72,6 +74,8 @@ def safe_crop(mat, x, y, crop_size=(320, 320)):
 
 def random_choice(trimap, crop_size=(320, 320)):
     crop_height, crop_width = crop_size
+    if crop_height == 0:
+        return 0, 0
     y_indices, x_indices = np.where(trimap == unknown_code)
     num_unknowns = len(y_indices)
     x, y = 0, 0
@@ -91,7 +95,7 @@ def matting_input_fn(params):
     backgrounds = params['backgrounds']
     backgrounds = glob.glob(backgrounds, recursive=True)
     background_count = params['background_count']
-    different_sizes = [(320, 320), (480, 480), (640, 640)]
+    different_sizes = [(0,0),(320, 320), (480, 480), (640, 640)]
 
     def _input_fn():
         def _generator():
@@ -104,38 +108,38 @@ def matting_input_fn(params):
                 alpha = np.array(alpha)
                 alpha[np.greater(alpha, 0)] = 255
                 original_foreground = np.array(Image.open(fname).convert('RGB'))
-                for _ in range(background_count):
-                    background = random.choice(backgrounds)
-                    background = np.array(Image.open(background).convert('RGB'))
-                    crop_size = random.choice(different_sizes)
-                    trimap = generate_trimap(alpha)
-                    x, y = random_choice(trimap, crop_size)
-                    background = random_crop(background)
-                    foreground = safe_crop(original_foreground, x, y, crop_size)
-                    train_alpha = safe_crop(alpha, x, y, crop_size)
-                    trimap = safe_crop(trimap, x, y, crop_size)
-                    train_alpha = np.expand_dims(train_alpha, 2).astype(np.float32) / 255
-                    trimap = np.expand_dims(trimap, 2).astype(np.float32)
-                    if np.sum(np.equal(trimap,unknown_code).astype(np.int32)) < 1:
-                        continue
-                    background = background.astype(np.float32)
-                    foreground = foreground.astype(np.float32)
-                    raw_comp_background = train_alpha * foreground + (1. - train_alpha) * background
-                    reduceced_comp_background = raw_comp_background - g_mean
-                    if np.random.random_sample() > 0.5:
-                        reduceced_comp_background = np.fliplr(reduceced_comp_background)
-                        raw_comp_background = np.fliplr(raw_comp_background)
-                        background = np.fliplr(background)
-                        train_alpha = np.fliplr(train_alpha)
-                        trimap = np.fliplr(trimap)
-                        foreground = np.fliplr(foreground)
-                    yield {
-                              'input': reduceced_comp_background,
-                              'trimap': trimap,
-                              'original_background': background,
-                              'raw_comp_background': raw_comp_background,
-                              'foreground': foreground,
-                          }, train_alpha
+                background = random.choice(backgrounds)
+                background = np.array(Image.open(background).convert('RGB'))
+                crop_size = random.choice(different_sizes)
+                trimap = generate_trimap(alpha)
+                x, y = random_choice(trimap, crop_size)
+                background = random_crop(background)
+                foreground = safe_crop(original_foreground, x, y, crop_size)
+                train_alpha = safe_crop(alpha, x, y, crop_size)
+                #trimap = safe_crop(trimap, x, y, crop_size)
+                trimap = generate_trimap(train_alpha)
+                train_alpha = np.expand_dims(train_alpha, 2).astype(np.float32) / 255
+                trimap = np.expand_dims(trimap, 2).astype(np.float32)
+                if np.sum(np.equal(trimap,unknown_code).astype(np.int32)) < 1:
+                    continue
+                background = background.astype(np.float32)
+                foreground = foreground.astype(np.float32)
+                raw_comp_background = train_alpha * foreground + (1. - train_alpha) * background
+                reduceced_comp_background = raw_comp_background - g_mean
+                if np.random.random_sample() > 0.5:
+                    reduceced_comp_background = np.fliplr(reduceced_comp_background)
+                    raw_comp_background = np.fliplr(raw_comp_background)
+                    background = np.fliplr(background)
+                    train_alpha = np.fliplr(train_alpha)
+                    trimap = np.fliplr(trimap)
+                    foreground = np.fliplr(foreground)
+                yield {
+                          'input': reduceced_comp_background,
+                          'trimap': trimap,
+                          'original_background': background,
+                          'raw_comp_background': raw_comp_background,
+                          'foreground': foreground,
+                      }, train_alpha
 
         ds = tf.data.Dataset.from_generator(_generator,
                                             (

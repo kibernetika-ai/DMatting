@@ -45,7 +45,7 @@ def preprocess(inputs, ctx):
     mask = Image.open(io.BytesIO(mask[0]))
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
-    np_mask[np.less(np_mask,200)]=0
+    #np_mask[np.less(np_mask,200)]=0
     np_mask[np.greater(np_mask,0)]=255
     input_trimap = generate_trimap(np_mask)
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)

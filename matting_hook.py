@@ -54,11 +54,13 @@ def preprocess(inputs, ctx):
 
 
 def postprocess(outputs, ctx):
-    logging.info('Outputs: {}'.format(outputs))
-    mask = outputs['output']*255
-    mask_image = Image.fromarray((mask*255).astype(np.uint8))
+    mask = outputs['output'][0]*255
+    logging.info('Mask shape: {}'.format(mask.shape))
+    mask = np.reshape(mask,(320,320))
+    mask_image = Image.fromarray(mask.astype(np.uint8))
     mask_image = mask_image.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
     mask_image = np.array(mask_image).astype(np.float32)/255
+    mask_image = np.expand_dims(mask_image,2)
     image = np.array(ctx.image).astype(np.float32)
     result = (mask_image*image).astype(np.uint8)
     image_bytes = io.BytesIO()

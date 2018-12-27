@@ -30,7 +30,7 @@ def generate_trimap(alpha):
     return trimap
 
 def preprocess(inputs, ctx):
-    logging.info('Inputs test: {}'.format(inputs['test_opt']))
+    logging.info('Inputs test: {}'.format(str(inputs['test_opt'])))
     image = inputs.get('image')
     if image is None:
         raise RuntimeError('Missing "image" key in inputs. Provide an image in "image" key')
@@ -45,7 +45,7 @@ def preprocess(inputs, ctx):
     mask = Image.open(io.BytesIO(mask[0]))
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
-    mask[np.greater(mask,0)]=255
+    np_mask[np.greater(np_mask,0)]=255
     input_trimap = generate_trimap(np_mask)
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)
     image = np.array(image).astype(np.float32)

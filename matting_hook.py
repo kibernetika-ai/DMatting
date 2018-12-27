@@ -76,7 +76,7 @@ def postprocess(outputs, ctx):
     image = np.array(ctx.image).astype(np.float32)
     result = (mask_image*image).astype(np.uint8)
     if ctx.in_type=='np':
-        outputs['image'] = result
+        outputs['image'] = mask_image
     else:
         image_bytes = io.BytesIO()
         Image.fromarray(result).save(image_bytes, format='PNG')

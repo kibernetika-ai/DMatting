@@ -131,7 +131,7 @@ def postprocess(outputs, ctx):
         total_mask[np.less(total_mask, ctx.pixel_threshold)]=0
     elif ctx.matting == 'Kibernetika':
         total_mask = kibernetika_matte(ctx.np_image,np.uint8(total_mask*255))
-        total_mask = total_mask/255
+        #total_mask = total_mask
 
     if ctx.effect == 'Remove background':
         image = ctx.np_image.astype(np.float32)

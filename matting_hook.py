@@ -30,7 +30,7 @@ def generate_trimap(alpha):
     return trimap
 
 def preprocess(inputs, ctx):
-    logging.info('Inputs test: {}'.format(str(inputs['test_opt'])))
+    logging.info('Inputs test: {}'.format(str(inputs['test_opt'][0])))
     image = inputs.get('image')
     if image is None:
         raise RuntimeError('Missing "image" key in inputs. Provide an image in "image" key')

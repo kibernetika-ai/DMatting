@@ -29,6 +29,8 @@ def preprocess(inputs, ctx):
     image = Image.open(io.BytesIO(image[0]))
     image = image.convert('RGB')
     np_image = np.array(image)
+    inputs['inputs'] = None
+    logging.info('Inputs: {}'.format(inputs))
     ctx.image = image
     ctx.np_image = np_image
     ctx.area_threshold = int(inputs.get('area_threshold', 0))

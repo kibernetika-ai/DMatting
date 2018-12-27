@@ -6,9 +6,7 @@ from PIL import Image
 from PIL import ImageFilter
 import sklearn.neighbors
 import scipy.sparse
-from mlboardclient.api import client
 from ml_serving.utils import helpers
-import  os
 LOG = logging.getLogger(__name__)
 
 

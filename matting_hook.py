@@ -23,7 +23,7 @@ unknown_code = 128
 
 def generate_trimap(alpha):
     trimap = np.copy(alpha)
-    k_size = 40
+    k_size = 5
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size)) - ndimage.grey_erosion(alpha[:, :],
                                                                                                       size=(k_size,
                                                                                                             k_size))) != 0)] = unknown_code
@@ -45,7 +45,7 @@ def preprocess(inputs, ctx):
     mask = Image.open(io.BytesIO(mask[0]))
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
-    np_mask[np.less(np_mask,128)]=0
+    #np_mask[np.less(np_mask,128)]=0
     np_mask[np.greater(np_mask,0)]=255
     input_trimap = generate_trimap(np_mask)
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)

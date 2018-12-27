@@ -74,12 +74,11 @@ def postprocess(outputs, ctx):
     mask_image = np.array(mask_image).astype(np.float32)/255
     if ctx.in_type=='np':
         outputs['image'] = mask_image
-        return
+        return outputs
     mask_image = np.expand_dims(mask_image,2)
     image = np.array(ctx.image).astype(np.float32)
     result = (mask_image*image).astype(np.uint8)
-    if ctx.in_type!='np':
-        image_bytes = io.BytesIO()
-        Image.fromarray(result).save(image_bytes, format='PNG')
-        outputs['image'] = image_bytes.getvalue()
+    image_bytes = io.BytesIO()
+    Image.fromarray(result).save(image_bytes, format='PNG')
+    outputs['image'] = image_bytes.getvalue()
     return outputs

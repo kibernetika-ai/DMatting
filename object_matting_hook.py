@@ -18,6 +18,9 @@ interploations = {
     'BICUBIC':Image.BICUBIC,
     'BILINEAR':Image.BILINEAR,
 }
+obj_classes = {
+    'Person':1
+}
 def preprocess(inputs, ctx):
     image = inputs.get('inputs')
     if image is None:
@@ -31,7 +34,7 @@ def preprocess(inputs, ctx):
     ctx.area_threshold = int(inputs.get('area_threshold', 0))
     ctx.max_objects = int(inputs.get('max_objects', 100))
     ctx.pixel_threshold = float(inputs.get('pixel_threshold', 0.5))
-    ctx.object_classes = [inputs.get('object_class', ['Person'])[0].decode("utf-8")]
+    ctx.object_classes = [obj_classes.get(inputs.get('object_class', ['Person'])[0].decode("utf-8"),1)]
     ctx.effect = inputs.get('effect', ['Remove background'])[0].decode("utf-8")#Remove background,Mask,Blur
     ctx.blur_radius = int(inputs.get('blur_radius', 2))
     ctx.interpolation = interploations[inputs.get('interpolation', ['BILINEAR'])[0].decode("utf-8")]#NEAREST,BICUBIC,BILINEAR

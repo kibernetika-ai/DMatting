@@ -48,7 +48,7 @@ def preprocess(inputs, ctx):
     #np_mask[np.greater(np_mask,0)]=255
     #input_trimap = generate_trimap(np_mask)
     input_trimap = np_mask
-    input_trimap[np.less(np_mask,255)]=0
+    input_trimap[np.less(np_mask,255)]=128
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)
     image = np.array(image).astype(np.float32)
     input_image = image-g_mean

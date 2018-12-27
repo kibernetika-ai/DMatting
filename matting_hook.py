@@ -73,6 +73,7 @@ def postprocess(outputs, ctx):
     mask_image = mask_image.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
     mask_image = np.array(mask_image).astype(np.float32)/255
     if ctx.in_type=='np':
+        logging.info("Retunr {}".format(mask_image.shape))
         outputs['image'] = mask_image
         return outputs
     mask_image = np.expand_dims(mask_image,2)

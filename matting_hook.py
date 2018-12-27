@@ -56,7 +56,7 @@ def preprocess(inputs, ctx):
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
     #np_mask[np.less(np_mask,128)]=0
-    np_mask[np.logical_and(np_mask>0, np_mask<245)]=128
+    np_mask[np.logical_and(np_mask>0, np_mask<250)]=128
     #np_mask[np.greater(np_mask,250)]=255
     input_trimap = generate_trimap(np_mask)
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)
@@ -73,7 +73,7 @@ def postprocess(outputs, ctx):
     mask_image = mask_image.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
     mask_image = np.array(mask_image).astype(np.float32)/255
     if ctx.in_type=='np':
-        logging.info("Retunr {}".format(mask_image.shape))
+        logging.info("Return {}".format(mask_image.shape))
         outputs['image'] = mask_image
         return outputs
     mask_image = np.expand_dims(mask_image,2)

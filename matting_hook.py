@@ -31,7 +31,7 @@ def generate_trimap(alpha):
 
 def preprocess(inputs, ctx):
     in_type = 'image'
-    if inputs.get('in_type',None) == 'np':
+    if inputs.get('in_type',None) is not None:
         in_type = 'np'
     ctx.in_type = in_type
     if in_type == 'np':

@@ -56,7 +56,7 @@ def preprocess(inputs, ctx):
     ctx.resized_image = image
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
-    if len(np_mask.shape)>1:
+    if len(np_mask.shape)>2:
         logging.warning('Mask shape is {}'.format(np_mask.shape))
         np_mask = np_mask[:,:,0]
     #np_mask[np.less(np_mask,128)]=0

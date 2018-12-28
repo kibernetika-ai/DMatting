@@ -81,7 +81,7 @@ def postprocess(outputs, ctx):
     result = np.concatenate((masks,image),axis=1)
     image_bytes = io.BytesIO()
     result = Image.fromarray(result)
-    result.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
+    result = result.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
     result.save(image_bytes, format='PNG')
     outputs['image'] = image_bytes.getvalue()
     return outputs

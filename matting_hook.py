@@ -60,9 +60,10 @@ def preprocess(inputs, ctx):
         logging.warning('Mask shape is {}'.format(np_mask.shape))
         np_mask = np_mask[:,:,0]
     #np_mask[np.less(np_mask,128)]=0
-    np_mask[np.logical_and(np_mask>0, np_mask<200)]=0
-    np_mask[np.greater(np_mask,200)]=255
-    np_mask[np.less(np_mask,255)]=0
+    #np_mask[np.logical_and(np_mask>0, np_mask<200)]=0
+    np_mask[np.less_equal(np_mask,100)]=0
+    np_mask[np.greater(np_mask,100)]=255
+    #np_mask[np.less(np_mask,255)]=0
     ctx.np_mask = np_mask
     input_trimap = generate_trimap(np_mask)
     #input_trimap = np_mask

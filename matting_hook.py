@@ -12,9 +12,9 @@ def init_hook(**params):
     LOG.info('Loaded.')
 
 interploations = {
-    0:Image.LANCZOS,
-    1:Image.NEAREST,
-    2:Image.BICUBIC,
+    0:Image.BILINEAR,
+    1:Image.BILINEAR,
+    2:Image.BILINEAR,
     3:Image.BILINEAR,
 }
 
@@ -23,7 +23,7 @@ unknown_code = 128
 
 def generate_trimap(alpha):
     trimap = np.copy(alpha)
-    k_size = 5
+    k_size = 20
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size)) - ndimage.grey_erosion(alpha[:, :],
                                                                                                       size=(k_size,
                                                                                                             k_size))) != 0)] = unknown_code
@@ -31,7 +31,7 @@ def generate_trimap(alpha):
 
 def preprocess(inputs, ctx):
     in_type = 'image'
-    if inputs.get('in_type',None) is not None:
+    if inputs.get('in_type',None) == 'np':
         in_type = 'np'
     ctx.in_type = in_type
     if in_type == 'np':
@@ -59,8 +59,9 @@ def preprocess(inputs, ctx):
         logging.warning('Mask shape is {}'.format(np_mask.shape))
         np_mask = np_mask[:,:,0]
     #np_mask[np.less(np_mask,128)]=0
-    np_mask[np.logical_and(np_mask>0, np_mask<230)]=128
+    #np_mask[np.logical_and(np_mask>0, np_mask<230)]=128
     #np_mask[np.greater(np_mask,250)]=255
+    np_mask[np.less(np_mask,255)]=0
     input_trimap = generate_trimap(np_mask)
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)
     image = np.array(image).astype(np.float32)

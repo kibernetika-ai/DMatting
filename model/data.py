@@ -17,6 +17,7 @@ unknown_code = 128
 def generate_trimap(alpha):
     trimap = np.copy(alpha)
     k_size = random.choice(trimap_kernel)
+    trimap[np.less(alpha,255)]=unknown_code
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size)) - ndimage.grey_erosion(alpha[:, :],
                                                                                                       size=(k_size,
                                                                                                             k_size))) != 0)] = unknown_code
@@ -108,7 +109,7 @@ def matting_input_fn(params):
                 alpha = np.array(alpha)
                 if len(alpha.shape)>2:
                     alpha = alpha[:,:,0]
-                alpha[np.greater(alpha, 0)] = 255
+                #alpha[np.greater(alpha, 0)] = 255
                 original_foreground = np.array(Image.open(fname).convert('RGB'))
                 background = random.choice(backgrounds)
                 background = np.array(Image.open(background).convert('RGB'))

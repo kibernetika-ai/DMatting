@@ -53,6 +53,7 @@ def preprocess(inputs, ctx):
     ctx.interpolation = interploations[int(inputs.get('interpolation', 0))]
     ctx.image = image
     image = image.resize((320,320),ctx.interpolation)
+    ctx.resized_image = image
     mask = mask.resize((320,320),ctx.interpolation)
     np_mask = np.array(mask)
     if len(np_mask.shape)>1:
@@ -62,14 +63,26 @@ def preprocess(inputs, ctx):
     #np_mask[np.logical_and(np_mask>0, np_mask<230)]=128
     #np_mask[np.greater(np_mask,250)]=255
     np_mask[np.less(np_mask,255)]=0
+    ctx.np_mask = np_mask
     input_trimap = generate_trimap(np_mask)
     input_trimap = np.expand_dims(input_trimap.astype(np.float32),2)
+    ctx.input_trimap = input_trimap
     image = np.array(image).astype(np.float32)
     input_image = image-g_mean
     return {'input': [input_image],'trimap':[input_trimap]}
 
-
 def postprocess(outputs, ctx):
+    mask = outputs['output'][0]
+    mask = np.reshape(mask,(320,320,1))
+    np_mask = np.expand_dims(ctx.np_mask,2).astype(np.float32)
+    masks = np.concatenate((np_mask,ctx.input_trimap,mask*255),axis=1)
+    masks = np.concatenate((masks,masks,masks),axis=3).astype(np.uint8)
+    image_bytes = io.BytesIO()
+    Image.fromarray(masks).save(image_bytes, format='PNG')
+    outputs['image'] = image_bytes.getvalue()
+    return outputs
+
+def postprocess0(outputs, ctx):
     mask = outputs['output'][0]*255
     logging.info('Mask shape: {}'.format(mask.shape))
     mask = np.reshape(mask,(320,320))

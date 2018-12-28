@@ -80,7 +80,9 @@ def postprocess(outputs, ctx):
     image = (mask*(np.array(ctx.resized_image,dtype=np.float32))).astype(np.uint8)
     result = np.concatenate((masks,image),axis=1)
     image_bytes = io.BytesIO()
-    Image.fromarray(result).save(image_bytes, format='PNG')
+    result = Image.fromarray(result)
+    result.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
+    result.save(image_bytes, format='PNG')
     outputs['image'] = image_bytes.getvalue()
     return outputs
 

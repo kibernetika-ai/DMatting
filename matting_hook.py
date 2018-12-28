@@ -71,7 +71,8 @@ def preprocess(inputs, ctx):
     input_image = image-g_mean
     return {'input': [input_image],'trimap':[input_trimap]}
 
-def postprocess(outputs, ctx):
+
+def postprocess_base(outputs, ctx):
     mask = outputs['output'][0]
     mask = np.reshape(mask,(320,320,1))
     np_mask = np.expand_dims(ctx.np_mask,2).astype(np.float32)
@@ -81,15 +82,14 @@ def postprocess(outputs, ctx):
     result = np.concatenate((masks,image),axis=1)
     image_bytes = io.BytesIO()
     result = Image.fromarray(result)
-    result = result.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
-    result.save(image_bytes, format='PNG')
+    result.save(result, format='PNG')
     outputs['image'] = image_bytes.getvalue()
     return outputs
 
-def postprocess0(outputs, ctx):
+def postprocess(outputs, ctx):
     mask = outputs['output'][0]*255
-    logging.info('Mask shape: {}'.format(mask.shape))
     mask = np.reshape(mask,(320,320))
+    mask = np.clip(mask,0,255)
     mask_image = Image.fromarray(mask.astype(np.uint8))
     mask_image = mask_image.resize((ctx.image.size[0],ctx.image.size[1]),ctx.interpolation)
     mask_image = np.array(mask_image).astype(np.float32)/255

@@ -106,6 +106,12 @@ def parse_args():
         help='Location to pretrained vgg16',
     )
     parser.add_argument(
+        '--dump',
+        type=args_str2bool, nargs='?',
+        const=True, default=False,
+        help='Just save first checkpoint',
+    )
+    parser.add_argument(
         '--enc_dec',
         type=args_str2bool, nargs='?',
         const=True, default=True,
@@ -243,6 +249,7 @@ def main():
         'enc_dec':args.enc_dec,
         'vgg16':args.vgg16,
         'warm_start_from':args.warm_start_from,
+        'dump':args.dump,
     }
     logging.info('args.refinement {}'.format(args.refinement))
     logging.info('enc_dec {}'.format(args.enc_dec))

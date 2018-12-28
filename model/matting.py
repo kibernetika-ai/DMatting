@@ -452,6 +452,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
         export_outputs = {
             tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: tf.estimator.export.PredictOutput(
                 refinement_predictions)}
+    if params['dump']:
+        hooks = [KillAppHook()]
     return tf.estimator.EstimatorSpec(
         mode=mode,
         eval_metric_ops=metrics,
@@ -523,3 +525,23 @@ class InitVariablesHook(session_run_hook.SessionRunHook):
 
     def after_run(self, run_context, run_values):
         None
+
+class KillAppHook(session_run_hook.SessionRunHook):
+    def __init__(self):
+        self._step = 1
+
+
+    def begin(self):
+        None
+
+    def after_create_session(self, session, coord):
+        None
+
+    def before_run(self, run_context):  # pylint: disable=unused-argument
+        return None
+
+    def after_run(self, run_context, run_values):
+        if self._step>1:
+            exit(0)
+        logging.info("Step: {}".format(self._step))
+        self._step+=1

@@ -17,7 +17,8 @@ unknown_code = 128
 def generate_trimap(alpha):
     trimap = np.copy(alpha)
     k_size = random.choice(trimap_kernel)
-    trimap[np.less(alpha,255)]=unknown_code
+    #trimap[np.less(alpha,255)]=unknown_code
+    trimap[np.less(alpha,255)]=0
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size)) - ndimage.grey_erosion(alpha[:, :],
                                                                                                       size=(k_size,
                                                                                                             k_size))) != 0)] = unknown_code

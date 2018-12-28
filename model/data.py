@@ -106,6 +106,8 @@ def matting_input_fn(params):
                     continue
                 alpha = Image.open(aname)
                 alpha = np.array(alpha)
+                if len(alpha.shape)>2:
+                    alpha = alpha[:,:,0]
                 alpha[np.greater(alpha, 0)] = 255
                 original_foreground = np.array(Image.open(fname).convert('RGB'))
                 background = random.choice(backgrounds)

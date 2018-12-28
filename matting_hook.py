@@ -76,7 +76,7 @@ def postprocess(outputs, ctx):
     mask = np.reshape(mask,(320,320,1))
     np_mask = np.expand_dims(ctx.np_mask,2).astype(np.float32)
     masks = np.concatenate((np_mask,ctx.input_trimap,mask*255),axis=1)
-    masks = np.concatenate((masks,masks,masks),axis=3).astype(np.uint8)
+    masks = np.concatenate((masks,masks,masks),axis=2).astype(np.uint8)
     image_bytes = io.BytesIO()
     Image.fromarray(masks).save(image_bytes, format='PNG')
     outputs['image'] = image_bytes.getvalue()

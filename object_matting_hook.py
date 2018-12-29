@@ -123,7 +123,7 @@ def postprocess(outputs, ctx):
     total_mask = np.zeros((height, width), np.float32)
     for i in range(min(len(masks), ctx.max_objects)):
         pre_mask = masks[i][1]
-        box = masks[2]
+        box = masks[i][2]
         left = max(0,box[1])
         right = min(ctx.np_image.shape[1],box[3])
         upper = max(0,box[0])

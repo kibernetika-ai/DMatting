@@ -31,7 +31,7 @@ def generate_trimap0(alpha):
 
 def generate_trimap(alpha):
     trimap = np.copy(alpha)
-    k_size = 30
+    k_size = 20
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size))) != 0)] = unknown_code
     return trimap
 

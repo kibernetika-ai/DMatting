@@ -51,14 +51,16 @@ def kibernetika_patch(img, trimap,pixel_threshold,out_put):
     h = hr*320
     w = wr*320
     out = np.zeros((img.shape[0],img.shape[1]),dtype=np.float32)
-    for y in range(hr):
-        for x in range(wr):
+    for y0 in range(hr):
+        for x0 in range(wr):
+            y = y0*320
+            x = x0*320
             img_patch = img[y:min(y+320,img.shape[0]),x:min(x+320,img.shape[1]),:]
             trimap_patch = trimap[y:min(y+320,trimap.shape[0]),x:min(x+320,trimap.shape[1])]
             outputs = helpers.predict_grpc({'image': np.expand_dims(img_patch,0),'mask': np.expand_dims(trimap_patch,0),'in_type':np.array([1],dtype=np.int32),'out_type':np.array([out_put],dtype=np.int32),'pixel_threshold':np.array([int(pixel_threshold*255)],dtype=np.int32)},'deepmatting-0-0-1:9000')
             result = outputs['image']
             out[y:min(y+320,trimap.shape[0]),x:min(x+320,trimap.shape[1])] = result
-    return result
+    return out
 
 
 def kibernetika_matte(img, trimap,pixel_threshold,out_put):

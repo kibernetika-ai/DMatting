@@ -21,15 +21,15 @@ interploations = {
 g_mean = np.array(([126.88, 120.24, 112.19])).reshape([1, 1, 3])
 unknown_code = 128
 
-def generate_trimap0(alpha):
+def generate_trimap(alpha):
     trimap = np.copy(alpha)
-    k_size = 30
+    k_size = 10
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size)) - ndimage.grey_erosion(alpha[:, :],
                                                                                                       size=(k_size,
                                                                                                             k_size))) != 0)] = unknown_code
     return trimap
 
-def generate_trimap(alpha):
+def generate_trimap0(alpha):
     trimap = np.copy(alpha)
     k_size = 20
     trimap[np.where((ndimage.grey_dilation(alpha[:, :], size=(k_size, k_size))) != 0)] = unknown_code

@@ -124,11 +124,15 @@ def postprocess(outputs, ctx):
     for i in range(min(len(masks), ctx.max_objects)):
         pre_mask = masks[i][1]
         box = masks[2]
+        left = max(0,box[1])
+        right = min(ctx.np_image.shape[1],box[3])
+        upper = max(0,box[0])
+        lower = min(ctx.np_image.shape[0],box[2])
         if ctx.matting == 'DEFAULT':
             pre_mask[np.less(pre_mask, ctx.pixel_threshold)] = 0
         elif ctx.matting == 'Kibernetika':
-            pre_mask = kibernetika_matte(ctx.np_image[box[0]:box[2],box[1]:box[3],:],np.uint8(pre_mask*255))
-        box_mask = np.pad(pre_mask, ((box[0], height - box[2]), (box[1], width - box[3])), 'constant')
+            pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255))
+        box_mask = np.pad(pre_mask, ((upper, height - lower), (left, width - right)), 'constant')
         total_mask = np.maximum(total_mask,box_mask)
 
 

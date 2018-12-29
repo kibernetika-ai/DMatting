@@ -52,6 +52,7 @@ def preprocess(inputs, ctx):
 
     logging.info('Output type {}'.format(inputs.get('out_type',None)))
     ctx.output_type = int(inputs.get('out_type',0)[0])
+    pixel_threshold = int(inputs.get('pixel_threshold',128)[0])
     ctx.interpolation = interploations[int(inputs.get('interpolation', 0))]
     ctx.image = image
     image = image.resize((320,320),ctx.interpolation)
@@ -63,8 +64,8 @@ def preprocess(inputs, ctx):
         np_mask = np_mask[:,:,0]
     #np_mask[np.less(np_mask,128)]=0
     #np_mask[np.logical_and(np_mask>0, np_mask<200)]=0
-    np_mask[np.less_equal(np_mask,128)]=0
-    np_mask[np.greater(np_mask,128)]=255
+    np_mask[np.less_equal(np_mask,pixel_threshold)]=0
+    np_mask[np.greater(np_mask,pixel_threshold)]=255
     #np_mask[np.less(np_mask,255)]=0
     ctx.np_mask = np_mask
     input_trimap = generate_trimap(np_mask)

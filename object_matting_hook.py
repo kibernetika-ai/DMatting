@@ -8,6 +8,7 @@ import sklearn.neighbors
 import scipy.sparse
 from ml_serving.utils import helpers
 LOG = logging.getLogger(__name__)
+import math
 
 
 def init_hook(**params):
@@ -43,6 +44,22 @@ def preprocess(inputs, ctx):
     ctx.interpolation = interploations[inputs.get('interpolation', ['BILINEAR'])[0].decode("utf-8")]#NEAREST,BICUBIC,BILINEAR
     ctx.matting = inputs.get('matting', ['DEFAULT'])[0].decode("utf-8")#DEFAULT,KNN,NONE
     return {'inputs': [np_image]}
+
+def kibernetika_patch(img, trimap,pixel_threshold,out_put):
+    hr = int(math.ceil(img.shape[0]/320))
+    wr = int(math.ceil(img.shape[1]/320))
+    h = hr*320
+    w = wr*320
+    out = np.zeros(img.shape,dtype=np.float32)
+    for y in range(hr):
+        for x in range(wr):
+            img_patch = img[y:min(y+320,img.shape[0]),x:min(x+320,img.shape[1]),:]
+            trimap_patch = trimap[y:min(y+320,trimap.shape[0]),x:min(x+320,trimap.shape[1])]
+            outputs = helpers.predict_grpc({'image': np.expand_dims(img_patch,0),'mask': np.expand_dims(trimap_patch,0),'in_type':np.array([1],dtype=np.int32),'out_type':np.array([out_put],dtype=np.int32),'pixel_threshold':np.array([int(pixel_threshold*255)],dtype=np.int32)},'deepmatting-0-0-1:9000')
+            result = outputs['image']
+            out[y:min(y+320,trimap.shape[0]),x:min(x+320,trimap.shape[1])] = result
+    return result
+
 
 def kibernetika_matte(img, trimap,pixel_threshold,out_put):
     outputs = helpers.predict_grpc({'image': np.expand_dims(img,0),'mask': np.expand_dims(trimap,0),'in_type':np.array([1],dtype=np.int32),'out_type':np.array([out_put],dtype=np.int32),'pixel_threshold':np.array([int(pixel_threshold*255)],dtype=np.int32)},'deepmatting-0-0-1:9000')
@@ -135,6 +152,8 @@ def postprocess(outputs, ctx):
         lower = min(ctx.np_image.shape[0],box[2])
         if ctx.matting == 'DEFAULT':
             pre_mask[np.less(pre_mask, ctx.pixel_threshold)] = 0
+        elif ctx.matting == 'KibernetikaPatch':
+            pre_mask = kibernetika_patch(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,0)
         elif ctx.matting == 'Kibernetika':
             pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,0)
         elif ctx.matting == 'Testing':

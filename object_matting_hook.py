@@ -50,7 +50,7 @@ def kibernetika_patch(img, trimap,pixel_threshold,out_put):
     wr = int(math.ceil(img.shape[1]/320))
     h = hr*320
     w = wr*320
-    out = np.zeros(img.shape,dtype=np.float32)
+    out = np.zeros((img.shape[0],img[1]),dtype=np.float32)
     for y in range(hr):
         for x in range(wr):
             img_patch = img[y:min(y+320,img.shape[0]),x:min(x+320,img.shape[1]),:]

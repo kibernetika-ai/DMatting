@@ -112,26 +112,25 @@ def postprocess(outputs, ctx):
         box = detection_boxes[i]
         mask_image = mask_image.resize((box[3] - box[1], box[2] - box[0]), ctx.interpolation)
         box_mask = np.array(mask_image)
-        box_mask = np.pad(box_mask, ((box[0], height - box[2]), (box[1], width - box[3])), 'constant')
         area = int(np.sum(np.greater_equal(box_mask, ctx.pixel_threshold).astype(np.int32)))
         if area * 100 / image_area < ctx.area_threshold:
             continue
-        masks.append((area, box_mask))
+        masks.append((area, box_mask,box))
 
     if len(masks) < 1:
         return return_original()
     masks = sorted(masks, key=lambda row: -row[0])
     total_mask = np.zeros((height, width), np.float32)
     for i in range(min(len(masks), ctx.max_objects)):
-        total_mask = np.maximum(total_mask,masks[i][1])
-    if ctx.matting == 'KNN':
-        total_mask[np.less(total_mask, ctx.pixel_threshold)]=0
-        total_mask = knn_matte(ctx.np_image,total_mask*255)
-    elif ctx.matting == 'DEFAULT':
-        total_mask[np.less(total_mask, ctx.pixel_threshold)]=0
-    elif ctx.matting == 'Kibernetika':
-        total_mask = kibernetika_matte(ctx.np_image,np.uint8(total_mask*255))
-        #total_mask = total_mask
+        pre_mask = masks[i][1]
+        box = masks[2]
+        if ctx.matting == 'DEFAULT':
+            pre_mask[np.less(pre_mask, ctx.pixel_threshold)] = 0
+        elif ctx.matting == 'Kibernetika':
+            pre_mask = kibernetika_matte(ctx.np_image[box[0]:box[2],box[1]:box[3],:],np.uint8(pre_mask*255))
+        box_mask = np.pad(pre_mask, ((box[0], height - box[2]), (box[1], width - box[3])), 'constant')
+        total_mask = np.maximum(total_mask,box_mask)
+
 
     if ctx.effect == 'Remove background':
         image = ctx.np_image.astype(np.float32)

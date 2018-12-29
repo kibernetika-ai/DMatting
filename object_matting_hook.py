@@ -44,8 +44,8 @@ def preprocess(inputs, ctx):
     ctx.matting = inputs.get('matting', ['DEFAULT'])[0].decode("utf-8")#DEFAULT,KNN,NONE
     return {'inputs': [np_image]}
 
-def kibernetika_matte(img, trimap):
-    outputs = helpers.predict_grpc({'image': np.expand_dims(img,0),'mask': np.expand_dims(trimap,0),'in_type':np.array([1],dtype=np.int32)},'deepmatting-0-0-1:9000')
+def kibernetika_matte(img, trimap,out_put):
+    outputs = helpers.predict_grpc({'image': np.expand_dims(img,0),'mask': np.expand_dims(trimap,0),'in_type':np.array([1],dtype=np.int32),'out_type':np.array([out_put],dtype=np.int32)},'deepmatting-0-0-1:9000')
     return outputs['image']
 
 def knn_matte(img, trimap, mylambda=100):
@@ -136,7 +136,11 @@ def postprocess(outputs, ctx):
         if ctx.matting == 'DEFAULT':
             pre_mask[np.less(pre_mask, ctx.pixel_threshold)] = 0
         elif ctx.matting == 'Kibernetika':
-            pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255))
+            pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),0)
+        elif ctx.matting == 'Testing':
+            pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),1)
+            outputs['output'] = pre_mask
+            return outputs
         box_mask = np.pad(pre_mask, ((upper, height - lower), (left, width - right)), 'constant')
         total_mask = np.maximum(total_mask,box_mask)
 

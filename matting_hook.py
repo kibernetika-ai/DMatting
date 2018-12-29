@@ -50,6 +50,8 @@ def preprocess(inputs, ctx):
         image = image.convert('RGB')
         mask = Image.open(io.BytesIO(mask[0]))
 
+    logging.info('Output type {}'.format(inputs.get('out_type',None)))
+    ctx.output_type = int(inputs.get('out_type',0))
     ctx.interpolation = interploations[int(inputs.get('interpolation', 0))]
     ctx.image = image
     image = image.resize((320,320),ctx.interpolation)
@@ -74,7 +76,7 @@ def preprocess(inputs, ctx):
     return {'input': [input_image],'trimap':[input_trimap]}
 
 
-def postprocess_base(outputs, ctx):
+def postprocess_test(outputs, ctx):
     mask = outputs['output'][0]
     mask = np.reshape(mask,(320,320,1))
     np_mask = np.expand_dims(ctx.np_mask,2).astype(np.float32)
@@ -89,6 +91,8 @@ def postprocess_base(outputs, ctx):
     return outputs
 
 def postprocess(outputs, ctx):
+    if ctx.output_type==1:
+        return postprocess_test(outputs,ctx)
     mask = outputs['output'][0]*255
     mask = np.reshape(mask,(320,320))
     mask = np.clip(mask,0,255)

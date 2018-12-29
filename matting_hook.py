@@ -51,7 +51,7 @@ def preprocess(inputs, ctx):
         mask = Image.open(io.BytesIO(mask[0]))
 
     logging.info('Output type {}'.format(inputs.get('out_type',None)))
-    ctx.output_type = int(inputs.get('out_type',0))
+    ctx.output_type = int(inputs.get('out_type',0)[0])
     ctx.interpolation = interploations[int(inputs.get('interpolation', 0))]
     ctx.image = image
     image = image.resize((320,320),ctx.interpolation)
@@ -86,7 +86,7 @@ def postprocess_test(outputs, ctx):
     result = np.concatenate((masks,image),axis=1)
     image_bytes = io.BytesIO()
     result = Image.fromarray(result)
-    result.save(result, format='PNG')
+    result.save(image_bytes, format='PNG')
     outputs['image'] = image_bytes.getvalue()
     return outputs
 

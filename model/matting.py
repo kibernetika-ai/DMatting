@@ -332,8 +332,8 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     _layer_sum("enc_dec_pred", enc_dec_pred)
 
     # refinement
-
-    x = tf.concat([rgb_input, enc_dec_pred], 3)
+    enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
+    x = tf.concat([rgb_input, enc_dec_predictions], 3)
     with tf.variable_scope('refinement_conv1') as scope:
         kernel = tf.Variable(tf.truncated_normal([3, 3, 4, 64], dtype=tf.float32,
                                                  stddev=1e-1), name='weights', trainable=refinement_training)
@@ -377,7 +377,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     unknown_region_size = tf.reduce_sum(wl)
 
     refinement_predictions = tf.where(tf.equal(trimap_input, 128), refinement_pred, trimap_input / 255.0)
-    enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
+    #enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
 
     evaluation_hooks = None
     metrics = {}

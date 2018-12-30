@@ -7,8 +7,33 @@ from tensorflow.python.training import session_run_hook
 import logging
 import numpy as np
 
-
 def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
+    logging.info('{} pool:{} ind:{}'.format(name, pool, ind))
+    with tf.variable_scope(name) as scope:
+        mask = tf.cast(ind, tf.int32)
+        input_shape = tf.shape(pool, out_type=tf.int32)
+        #  calculation new shape
+        output_shape = (input_shape[0], input_shape[1] * ksize.size[1], input_shape[2] * ksize.size[2], input_shape[3])
+        #self.output_shape1 = output_shape
+
+        # calculation indices for batch, height, width and feature maps
+        one_like_mask = tf.ones_like(mask, dtype=tf.int32)
+        batch_shape = tf.concatenate([[input_shape[0]], [1], [1], [1]], axis=0)
+        batch_range = tf.reshape(tf.range(output_shape[0], dtype=tf.int32), shape=batch_shape)
+        b = one_like_mask * batch_range
+        y = mask // (output_shape[2] * output_shape[3])
+        x = (mask // output_shape[3]) % output_shape[2]
+        feature_range = tf.range(output_shape[3], dtype=tf.int32)
+        f = one_like_mask * feature_range
+
+        # transpose indices & reshape update values to one dimension
+        updates_size = tf.size(pool)
+        indices = tf.transpose(tf.reshape(tf.stack([b, y, x, f]), [4, updates_size]))
+        values = tf.reshape(pool, [updates_size])
+        ret = tf.tf.scatter_nd(indices, values, output_shape)
+        return ret
+
+def unpool_orig(pool, ind, ksize=[1, 2, 2, 1], name=None):
     logging.info('{} pool:{} ind:{}'.format(name, pool, ind))
     with tf.variable_scope(name) as scope:
         input_shape = tf.shape(pool)

@@ -7,6 +7,7 @@ from tensorflow.python.training import session_run_hook
 import logging
 import numpy as np
 
+
 def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
     logging.info('{} pool:{} ind:{}'.format(name, pool, ind))
     with tf.variable_scope(name) as scope:
@@ -14,11 +15,11 @@ def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
         input_shape = tf.shape(pool, out_type=tf.int32)
         #  calculation new shape
         output_shape = (input_shape[0], input_shape[1] * ksize[1], input_shape[2] * ksize[2], input_shape[3])
-        #self.output_shape1 = output_shape
+        # self.output_shape1 = output_shape
 
         # calculation indices for batch, height, width and feature maps
         one_like_mask = tf.ones_like(mask, dtype=tf.int32)
-        batch_shape = tf.concatenate([[input_shape[0]], [1], [1], [1]], axis=0)
+        batch_shape = tf.concat([[input_shape[0]], [1], [1], [1]], axis=0)
         batch_range = tf.reshape(tf.range(output_shape[0], dtype=tf.int32), shape=batch_shape)
         b = one_like_mask * batch_range
         y = mask // (output_shape[2] * output_shape[3])
@@ -30,8 +31,9 @@ def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
         updates_size = tf.size(pool)
         indices = tf.transpose(tf.reshape(tf.stack([b, y, x, f]), [4, updates_size]))
         values = tf.reshape(pool, [updates_size])
-        ret = tf.tf.scatter_nd(indices, values, output_shape)
+        ret = tf.scatter_nd(indices, values, output_shape)
         return ret
+
 
 def unpool_orig(pool, ind, ksize=[1, 2, 2, 1], name=None):
     logging.info('{} pool:{} ind:{}'.format(name, pool, ind))
@@ -402,7 +404,7 @@ def _matting_model_fn(features, labels, mode, params=None, config=None, model_di
     unknown_region_size = tf.reduce_sum(wl)
 
     refinement_predictions = tf.where(tf.equal(trimap_input, 128), refinement_pred, trimap_input / 255.0)
-    #enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
+    # enc_dec_predictions = tf.where(tf.equal(trimap_input, 128), enc_dec_pred, trimap_input / 255.0)
 
     evaluation_hooks = None
     metrics = {}
@@ -551,10 +553,10 @@ class InitVariablesHook(session_run_hook.SessionRunHook):
     def after_run(self, run_context, run_values):
         None
 
+
 class KillAppHook(session_run_hook.SessionRunHook):
     def __init__(self):
         self._step = 1
-
 
     def begin(self):
         None
@@ -566,7 +568,7 @@ class KillAppHook(session_run_hook.SessionRunHook):
         return None
 
     def after_run(self, run_context, run_values):
-        if self._step>1:
+        if self._step > 1:
             exit(0)
         logging.info("Step: {}".format(self._step))
-        self._step+=1
+        self._step += 1

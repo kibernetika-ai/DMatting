@@ -13,7 +13,7 @@ def unpool(pool, ind, ksize=[1, 2, 2, 1], name=None):
         mask = tf.cast(ind, tf.int32)
         input_shape = tf.shape(pool, out_type=tf.int32)
         #  calculation new shape
-        output_shape = (input_shape[0], input_shape[1] * ksize.size[1], input_shape[2] * ksize.size[2], input_shape[3])
+        output_shape = (input_shape[0], input_shape[1] * ksize[1], input_shape[2] * ksize[2], input_shape[3])
         #self.output_shape1 = output_shape
 
         # calculation indices for batch, height, width and feature maps

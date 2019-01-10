@@ -39,7 +39,7 @@ def preprocess(inputs, ctx):
             ratio = h/1024.0
 
     if ratio>1:
-        image = ctx.original_image.resize((w/ratio,h/ratio))
+        image = ctx.original_image.resize((int(w/ratio),int(h/ratio)))
     else:
         image = ctx.original_image
     ctx.process_np_image = np.array(image)

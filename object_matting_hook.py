@@ -42,6 +42,8 @@ def preprocess(inputs, ctx):
         image = ctx.original_image.resize((int(w/ratio),int(h/ratio)))
     else:
         image = ctx.original_image
+    if not bool(inputs.get('return_origin_size', False)):
+        ctx.original_image = image
     ctx.process_np_image = np.array(image)
     ctx.original_np_image = np.array(ctx.original_image)
     ctx.area_threshold = int(inputs.get('area_threshold', 0))

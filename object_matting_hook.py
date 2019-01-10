@@ -75,8 +75,8 @@ def postprocess(outputs, ctx):
     if num_detection < 1:
         return return_original()
 
-    width = ctx.np_image.size[0]
-    height = ctx.np_image.size[1]
+    width = ctx.np_image.shape[1]
+    height = ctx.np_image.shape[0]
     image_area = width * height
     detection_boxes = outputs["detection_boxes"][0][:num_detection]
     detection_boxes = detection_boxes * [height, width, height, width]

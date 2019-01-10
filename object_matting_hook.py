@@ -120,7 +120,7 @@ def postprocess(outputs, ctx):
             pre_mask = kibernetika_matte(ctx.process_np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,1)
             outputs['output'] = pre_mask
             return outputs
-        box_mask = np.pad(pre_mask, ((upper, ctx.process_height - lower), (left, ctx.process_width - right)), 'constant')
+        box_mask = np.pad(pre_mask, ((upper, process_height - lower), (left, process_width - right)), 'constant')
         total_mask = np.maximum(total_mask,box_mask)
 
     if total_mask.shape != ctx.original_np_image.shape:

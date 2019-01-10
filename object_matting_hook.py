@@ -4,11 +4,9 @@ import logging
 import numpy as np
 from PIL import Image
 from PIL import ImageFilter
-import sklearn.neighbors
-import scipy.sparse
 from ml_serving.utils import helpers
+import cv2 as cv
 LOG = logging.getLogger(__name__)
-import math
 
 
 def init_hook(**params):
@@ -28,13 +26,24 @@ def preprocess(inputs, ctx):
     if image is None:
         raise RuntimeError('Missing "inputs" key in inputs. Provide an image in "inputs" key')
 
-    image = Image.open(io.BytesIO(image[0]))
-    image = image.convert('RGB')
-    np_image = np.array(image)
-    inputs['inputs'] = None
-    logging.info('Inputs: {}'.format(inputs))
-    ctx.image = image
-    ctx.np_image = np_image
+    ctx.original_image = Image.open(io.BytesIO(image[0]))
+    ctx.original_image = ctx.original_image.convert('RGB')
+    ratio = 1.0
+    w = float(ctx.original_image.size[0])
+    h = float(ctx.original_image.size[1])
+    if w>h:
+        if w>1024:
+            ratio = w/1024.0
+    else:
+        if h>1024:
+            ratio = h/1024.0
+
+    if ratio>1:
+        image = ctx.original_image.resize((w/ratio,h/ratio))
+    else:
+        image = ctx.original_image
+    ctx.process_np_image = np.array(image)
+    ctx.original_np_image = np.array(ctx.original_image)
     ctx.area_threshold = int(inputs.get('area_threshold', 0))
     ctx.max_objects = int(inputs.get('max_objects', 100))
     ctx.pixel_threshold = float(inputs.get('pixel_threshold', 0.5))
@@ -43,60 +52,13 @@ def preprocess(inputs, ctx):
     ctx.blur_radius = int(inputs.get('blur_radius', 2))
     ctx.interpolation = interploations[inputs.get('interpolation', ['BILINEAR'])[0].decode("utf-8")]#NEAREST,BICUBIC,BILINEAR
     ctx.matting = inputs.get('matting', ['DEFAULT'])[0].decode("utf-8")#DEFAULT,KNN,NONE
-    return {'inputs': [np_image]}
-
-def kibernetika_patch(img, trimap,pixel_threshold,out_put):
-    hr = int(math.ceil(img.shape[0]/320))
-    wr = int(math.ceil(img.shape[1]/320))
-    h = hr*320
-    w = wr*320
-    out = np.zeros((img.shape[0],img.shape[1]),dtype=np.float32)
-    for y0 in range(hr):
-        for x0 in range(wr):
-            y = y0*320
-            x = x0*320
-            img_patch = img[y:min(y+320,img.shape[0]),x:min(x+320,img.shape[1]),:]
-            trimap_patch = trimap[y:min(y+320,trimap.shape[0]),x:min(x+320,trimap.shape[1])]
-            outputs = helpers.predict_grpc({'image': np.expand_dims(img_patch,0),'mask': np.expand_dims(trimap_patch,0),'in_type':np.array([1],dtype=np.int32),'out_type':np.array([out_put],dtype=np.int32),'pixel_threshold':np.array([int(pixel_threshold*255)],dtype=np.int32)},'deepmatting-0-0-1:9000')
-            result = outputs['image']
-            out[y:min(y+320,trimap.shape[0]),x:min(x+320,trimap.shape[1])] = result
-    return out
+    return {'inputs': [ctx.process_np_image]}
 
 
 def kibernetika_matte(img, trimap,pixel_threshold,out_put):
     outputs = helpers.predict_grpc({'image': np.expand_dims(img,0),'mask': np.expand_dims(trimap,0),'in_type':np.array([1],dtype=np.int32),'out_type':np.array([out_put],dtype=np.int32),'pixel_threshold':np.array([int(pixel_threshold*255)],dtype=np.int32)},'deepmatting-0-0-1:9000')
     return outputs['image']
 
-def knn_matte(img, trimap, mylambda=100):
-    [m, n, c] = img.shape
-    img, trimap = img/255.0, trimap/255.0
-    trimap = np.expand_dims(trimap,2)
-    trimap = np.concatenate((trimap,trimap,trimap),axis=2)
-    foreground = (trimap > 0.99).astype(int)
-    background = (trimap < 0.01).astype(int)
-    all_constraints = foreground + background
-    a, b = np.unravel_index(np.arange(m*n), (m, n))
-    feature_vec = np.append(np.transpose(img.reshape(m*n,c)), [ a, b]/np.sqrt(m*m + n*n), axis=0).T
-    nbrs = sklearn.neighbors.NearestNeighbors(n_neighbors=10, n_jobs=4).fit(feature_vec)
-    knns = nbrs.kneighbors(feature_vec)[1]
-
-    row_inds = np.repeat(np.arange(m*n), 10)
-    col_inds = knns.reshape(m*n*10)
-    vals = 1 - np.linalg.norm(feature_vec[row_inds] - feature_vec[col_inds], axis=1)/(c+2)
-    A = scipy.sparse.coo_matrix((vals, (row_inds, col_inds)),shape=(m*n, m*n))
-
-    D_script = scipy.sparse.diags(np.ravel(A.sum(axis=1)))
-    L = D_script-A
-    D = scipy.sparse.diags(np.ravel(all_constraints[:,:, 0]))
-    v = np.ravel(foreground[:,:,0])
-    c = 2*mylambda*np.transpose(v)
-    H = 2*(L + mylambda*D)
-    try:
-        alpha = np.minimum(np.maximum(scipy.sparse.linalg.spsolve(H, c), 0), 1).reshape(m, n)
-    except Warning:
-        x = scipy.sparse.linalg.lsqr(H, c)
-        alpha = np.minimum(np.maximum(x[0], 0), 1).reshape(m, n)
-    return alpha
 
 def rgb2gray(rgb):
     gray = np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
@@ -107,18 +69,18 @@ def postprocess(outputs, ctx):
 
     def return_original():
         image_bytes = io.BytesIO()
-        ctx.image.save(image_bytes, format='PNG')
+        ctx.original_image.save(image_bytes, format='PNG')
         outputs['output'] = image_bytes.getvalue()
         return outputs
 
     if num_detection < 1:
         return return_original()
+    process_width = ctx.process_np_image.shape[1]
+    process_height = ctx.process_np_image.shape[0]
 
-    width = ctx.image.size[0]
-    height = ctx.image.size[1]
-    image_area = width * height
+    image_area = process_width * process_height
     detection_boxes = outputs["detection_boxes"][0][:num_detection]
-    detection_boxes = detection_boxes * [height, width, height, width]
+    detection_boxes = detection_boxes * [process_height, process_width, process_height, process_width]
     detection_boxes = detection_boxes.astype(np.int32)
     detection_classes = outputs["detection_classes"][0][:num_detection]
     detection_masks = outputs["detection_masks"][0][:num_detection]
@@ -127,15 +89,13 @@ def postprocess(outputs, ctx):
     for i in range(num_detection):
         if int(detection_classes[i]) not in ctx.object_classes:
             continue
-        mask_image = Image.fromarray(detection_masks[i])
         box = detection_boxes[i]
-        mask_image = mask_image.resize((box[3] - box[1], box[2] - box[0]), ctx.interpolation)
+        mask_image = cv.resize(detection_masks[i],(box[3] - box[1], box[2] - box[0]), interpolation=cv.INTER_LINEAR)
         left = max(0,box[1]-50)
-        right = min(ctx.np_image.shape[1],box[3]+50)
+        right = min(process_width,box[3]+50)
         upper = max(0,box[0]-50)
-        lower = min(ctx.np_image.shape[0],box[2]+50)
-        box_mask = np.array(mask_image)
-        box_mask = np.pad(box_mask, ((box[0]-upper, lower-box[2]), (box[1]-left, right - box[3])), 'constant')
+        lower = min(process_height,box[2]+50)
+        box_mask = np.pad(mask_image, ((box[0]-upper, lower-box[2]), (box[1]-left, right - box[3])), 'constant')
         area = int(np.sum(np.greater_equal(box_mask, ctx.pixel_threshold).astype(np.int32)))
         if area * 100 / image_area < ctx.area_threshold:
             continue
@@ -144,31 +104,30 @@ def postprocess(outputs, ctx):
     if len(masks) < 1:
         return return_original()
     masks = sorted(masks, key=lambda row: -row[0])
-    total_mask = np.zeros((height, width), np.float32)
+    total_mask = np.zeros((process_height, process_width), np.float32)
     for i in range(min(len(masks), ctx.max_objects)):
         pre_mask = masks[i][1]
         box = masks[i][2]
         left = max(0,box[1])
-        right = min(ctx.np_image.shape[1],box[3])
+        right = min(process_width,box[3])
         upper = max(0,box[0])
-        lower = min(ctx.np_image.shape[0],box[2])
+        lower = min(process_height,box[2])
         if ctx.matting == 'DEFAULT':
             pre_mask[np.less(pre_mask, ctx.pixel_threshold)] = 0
-        elif ctx.matting == 'KibernetikaPatch':
-            pre_mask = kibernetika_patch(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,0)
         elif ctx.matting == 'Kibernetika':
-            pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,0)
+            pre_mask = kibernetika_matte(ctx.process_np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,0)
         elif ctx.matting == 'Testing':
-            pre_mask = kibernetika_matte(ctx.np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,1)
+            pre_mask = kibernetika_matte(ctx.process_np_image[upper:lower,left:right,:],np.uint8(pre_mask*255),ctx.pixel_threshold,1)
             outputs['output'] = pre_mask
             return outputs
-        box_mask = np.pad(pre_mask, ((upper, height - lower), (left, width - right)), 'constant')
+        box_mask = np.pad(pre_mask, ((upper, ctx.process_height - lower), (left, ctx.process_width - right)), 'constant')
         total_mask = np.maximum(total_mask,box_mask)
 
+    if total_mask.shape != ctx.original_np_image.shape:
+        total_mask = cv.resize(total_mask,(ctx.original_np_image.shape[1],ctx.original_np_image.shape[0]),interpolation=cv.INTER_LINEAR)
 
     if ctx.effect == 'Remove background':
-        image = ctx.np_image.astype(np.float32)
-        #image = np.expand_dims(total_mask,2)*image
+        image = ctx.original_np_image.astype(np.float32)
         total_mask = np.uint8(total_mask*255)
         image = np.dstack((image, total_mask))
         image = Image.fromarray(np.uint8(image))
@@ -176,14 +135,14 @@ def postprocess(outputs, ctx):
         total_mask = total_mask*255
         image = Image.fromarray(np.uint8(total_mask))
     else:
-        image = ctx.np_image.astype(np.float32)
+        image = ctx.original_np_image.astype(np.float32)
         mask = np.expand_dims(total_mask,2)
         foreground = mask*image
         radius = min(max(ctx.blur_radius,2),10)
         if ctx.effect == 'Grey':
-            background = rgb2gray(ctx.np_image)
+            background = rgb2gray(ctx.original_np_image)
         else:
-            background = ctx.image.filter(ImageFilter.GaussianBlur(radius=radius))
+            background = ctx.original_image.filter(ImageFilter.GaussianBlur(radius=radius))
         background = (1.0-mask)*np.array(background,dtype=np.float32)
         image = foreground+background
         image = Image.fromarray(np.uint8(image))

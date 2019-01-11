@@ -129,11 +129,14 @@ def preprocess_mask(inputs, ctx):
     mask = inputs['mask']
     box = inputs['box']
     ctx.mask_box = box
-    image = cv.resize(ctx.process_np_image[box[0]:box[2], box[1]:box[3], :], (320, 320), interpolation=cv.INTER_LINEAR)
-    mask = cv.resize(mask, (320, 320), interpolation=cv.INTER_LINEAR)
     if len(mask.shape) > 2:
         logging.warning('Mask shape is {}'.format(mask.shape))
         mask = mask[:, :, 0]
+    if ctx.matting == 'DEFAULT':
+        mask[np.less(mask, ctx.pixel_threshold)] = 0
+        return {'ml-serving-ignore': True,'mask':mask}
+    image = cv.resize(ctx.process_np_image[box[0]:box[2], box[1]:box[3], :], (320, 320), interpolation=cv.INTER_LINEAR)
+    mask = cv.resize(mask, (320, 320), interpolation=cv.INTER_LINEAR)
     mask[np.less_equal(mask, ctx.pixel_threshold)] = 0
     mask[np.greater(mask, ctx.pixel_threshold)] = 255
     input_trimap = generate_trimap(mask)
@@ -148,12 +151,15 @@ def postprocess_mask(outputs, ctx):
         image_bytes = io.BytesIO()
         ctx.original_image.save(image_bytes, format='PNG')
         return {'output': image_bytes.getvalue()}
-    mask = outputs['output'][0] * 255
-    mask = np.reshape(mask, (320, 320))
-    mask = np.clip(mask, 0, 255)
-    mask = mask.astype(np.uint8)
-    mask = cv.resize(mask, (ctx.mask_box[3] - ctx.mask_box[1], ctx.mask_box[2] - ctx.mask_box[0]),
+    mask = outputs.get('mask',None)
+    if mask is None:
+        mask = outputs['output'][0] * 255
+        mask = np.reshape(mask, (320, 320))
+        mask = np.clip(mask, 0, 255)
+        mask = mask.astype(np.uint8)
+        mask = cv.resize(mask, (ctx.mask_box[3] - ctx.mask_box[1], ctx.mask_box[2] - ctx.mask_box[0]),
                      interpolation=cv.INTER_LINEAR)
+
     mask = mask.astype(np.float32) / 255
     process_width = ctx.process_np_image.shape[1]
     process_height = ctx.process_np_image.shape[0]

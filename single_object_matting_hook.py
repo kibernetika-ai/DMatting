@@ -89,7 +89,7 @@ def postprocess_objects(outputs, ctx):
         upper = max(0, box[0] - 50)
         lower = min(process_height, box[2] + 50)
         box_mask = np.pad(mask_image, ((box[0] - upper, lower - box[2]), (box[1] - left, right - box[3])), 'constant')
-        area = int(np.sum(np.greater_equal(box_mask, ctx.pixel_threshold).astype(np.int32)))
+        area = int(np.sum(np.greater_equal(box_mask, 0.5).astype(np.int32)))
         if area * 100 / image_area < ctx.area_threshold:
             continue
         masks.append((area, box_mask, [upper, left, lower, right]))

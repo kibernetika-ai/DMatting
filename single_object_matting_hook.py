@@ -152,25 +152,25 @@ def postprocess_mask(outputs, ctx):
     mask = np.reshape(mask, (320, 320))
     mask = np.clip(mask, 0, 255)
     mask = mask.astype(np.uint8)
-    mask = cv.resize(mask, (ctx.max_box[3] - ctx.max_box[1], ctx.max_box[2] - ctx.max_box[0]),
+    mask = cv.resize(mask, (ctx.mask_box[3] - ctx.mask_box[1], ctx.mask_box[2] - ctx.mask_box[0]),
                      interpolation=cv.INTER_LINEAR)
     mask = mask.astype(np.float32) / 255
     process_width = ctx.process_np_image.shape[1]
     process_height = ctx.process_np_image.shape[0]
     mask = np.pad(mask,
-                  ((ctx.max_box[0], process_height - ctx.max_box[2]), (ctx.max_box[1], process_width - ctx.max_box[3])),
+                  ((ctx.mask_box[0], process_height - ctx.mask_box[2]), (ctx.mask_box[1], process_width - ctx.mask_box[3])),
                   'constant')
     if mask.shape != ctx.original_np_image.shape:
         mask = cv.resize(mask, (ctx.original_np_image.shape[1], ctx.original_np_image.shape[0]),
                          interpolation=cv.INTER_LINEAR)
     if ctx.effect == 'Remove background':
         image = ctx.original_np_image.astype(np.float32)
-        total_mask = np.uint8(mask * 255)
-        image = np.dstack((image, total_mask))
+        mask = np.uint8(mask * 255)
+        image = np.dstack((image, mask))
         image = Image.fromarray(np.uint8(image))
     elif ctx.effect == "Mask":
-        total_mask = mask * 255
-        image = Image.fromarray(np.uint8(total_mask))
+        mask = mask * 255
+        image = Image.fromarray(np.uint8(mask))
     else:
         image = ctx.original_np_image.astype(np.float32)
         mask = np.expand_dims(mask, 2)

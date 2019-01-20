@@ -143,10 +143,10 @@ def export(checkpoint_dir, params):
         model_dir=checkpoint_dir,
     )
     feature_placeholders = {
-        'input': tf.placeholder(tf.float32, [None, None, None, 3], name='input'),
+        'input': tf.placeholder(tf.float32, [1, 512, 512, 3], name='input'),
 
     }
-    receiver = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_placeholders)
+    receiver = tf.estimator.export.build_raw_serving_input_receiver_fn(feature_placeholders,default_batch_size=1)
     net = Anime(
         params=params,
         model_dir=checkpoint_dir,

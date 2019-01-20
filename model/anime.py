@@ -253,7 +253,8 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
     training = (mode == tf.estimator.ModeKeys.TRAIN)
     if not training:
         features = features['input']
-    features.set_shape([None,None,None,3])
+    else:
+        features.set_shape([None,None,None,3])
     deps = params['deps']
     # 32
     y = tf.layers.conv2d(features, deps, 7, strides=(1, 1), padding='same')

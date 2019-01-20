@@ -272,6 +272,8 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
         y = tf.layers.conv2d(t, deps, 3, strides=(1, 1), padding='same')
         y = tf.layers.batch_normalization(y, axis=-1, training=training)
         y = tf.nn.relu(y)
+        if params['dropout']>0 and training:
+            y = tf.layers.dropout(y,params['dropout'],training=training)
         y = tf.layers.conv2d(y, deps, 3, strides=(1, 1), padding='same')
         y = tf.layers.batch_normalization(y, axis=-1, training=training)
         t = y + t

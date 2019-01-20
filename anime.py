@@ -43,6 +43,12 @@ def parse_args():
         help='Batch size.',
     )
     parser.add_argument(
+        '--dropout',
+        type=float,
+        default=-1.0,
+        help='Drouput',
+    )
+    parser.add_argument(
         '--learning_rate',
         type=float,
         default=1e-2,
@@ -217,6 +223,7 @@ def main():
         'original_weights': args.original_weights,
         'deps': args.deps,
         'layers': args.layers,
+        'dropout':args.dropout,
 
     }
     if not tf.gfile.Exists(checkpoint_dir):

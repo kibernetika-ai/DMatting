@@ -251,6 +251,8 @@ def original(features, data):
 
 def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=None):
     training = (mode == tf.estimator.ModeKeys.TRAIN)
+    if not training:
+        features = features['input']
     features.set_shape([None,None,None,3])
     deps = params['deps']
     # 32

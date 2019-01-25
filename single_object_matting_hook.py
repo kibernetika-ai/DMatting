@@ -57,7 +57,7 @@ def preprocess_objects(inputs, ctx):
     ctx.blur_radius = int(inputs.get('blur_radius', 2))
     ctx.interpolation = interploations[
         inputs.get('interpolation', ['BILINEAR'])[0].decode("utf-8")]  # NEAREST,BICUBIC,BILINEAR
-    ctx.matting = inputs.get('matting', ['DEFAULT'])[0].decode("utf-8")  # DEFAULT,KNN,NONE
+    ctx.matting = inputs.get('matting', ['Kibernetika'])[0].decode("utf-8")  # DEFAULT,KNN,NONE
     return {'inputs': [ctx.process_np_image]}
 
 

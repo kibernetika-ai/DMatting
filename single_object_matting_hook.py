@@ -52,12 +52,12 @@ def preprocess_objects(inputs, ctx):
     ctx.area_threshold = int(inputs.get('area_threshold', 0))
     ctx.max_objects = int(inputs.get('max_objects', 100))
     ctx.pixel_threshold = int(float(inputs.get('pixel_threshold', 0.5)) * 255)
-    ctx.object_classes = [obj_classes.get(inputs.get('object_class', ['Person'])[0].decode("utf-8"), 1)]
-    ctx.effect = inputs.get('effect', ['Remove background'])[0].decode("utf-8")  # Remove background,Mask,Blur
+    ctx.object_classes = [obj_classes.get(inputs.get('object_class', [b'Person'])[0].decode("utf-8"), 1)]
+    ctx.effect = inputs.get('effect', [b'Remove background'])[0].decode("utf-8")  # Remove background,Mask,Blur
     ctx.blur_radius = int(inputs.get('blur_radius', 2))
     ctx.interpolation = interploations[
-        inputs.get('interpolation', ['BILINEAR'])[0].decode("utf-8")]  # NEAREST,BICUBIC,BILINEAR
-    ctx.matting = inputs.get('matting', ['Kibernetika'])[0].decode("utf-8")  # DEFAULT,KNN,NONE
+        inputs.get('interpolation', [b'BILINEAR'])[0].decode("utf-8")]  # NEAREST,BICUBIC,BILINEAR
+    ctx.matting = inputs.get('matting', [b'Kibernetika'])[0].decode("utf-8")  # DEFAULT,KNN,NONE
     return {'inputs': [ctx.process_np_image]}
 
 

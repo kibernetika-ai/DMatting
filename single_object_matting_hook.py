@@ -23,6 +23,12 @@ obj_classes = {
     'Person': 1
 }
 
+def limit(v,l,r,d):
+    if v<l:
+        return d
+    if v>r:
+        return d
+    return v
 
 def preprocess_objects(inputs, ctx):
     image = inputs.get('inputs')
@@ -49,12 +55,36 @@ def preprocess_objects(inputs, ctx):
         ctx.original_image = image
     ctx.process_np_image = np.array(image)
     ctx.original_np_image = np.array(ctx.original_image)
-    ctx.area_threshold = int(inputs.get('area_threshold', 0))
-    ctx.max_objects = int(inputs.get('max_objects', 100))
-    ctx.pixel_threshold = int(float(inputs.get('pixel_threshold', 0.5)) * 255)
+    try:
+        ctx.area_threshold = int(inputs.get('area_threshold', 0))
+    except:
+        ctx.area_threshold = 0
+    ctx.area_threshold = limit(ctx.area_threshold,0,100,0)
+
+    try:
+        ctx.max_objects = int(inputs.get('max_objects', 1))
+    except:
+        ctx.max_objects = 1
+
+    ctx.max_objects = limit( ctx.max_objects,1,10,0)
+
+    try:
+        ctx.pixel_threshold = int(float(inputs.get('pixel_threshold', 0.5)) * 255)
+    except:
+        ctx.pixel_threshold = int(0.5 * 255)
+
+    ctx.pixel_threshold = limit( ctx.pixel_threshold,1,254,int(0.5 * 255))
+
     ctx.object_classes = [obj_classes.get(inputs.get('object_class', [b'Person'])[0].decode("utf-8"), 1)]
     ctx.effect = inputs.get('effect', [b'Remove background'])[0].decode("utf-8")  # Remove background,Mask,Blur
-    ctx.blur_radius = int(inputs.get('blur_radius', 2))
+
+    try:
+        ctx.blur_radius = int(inputs.get('blur_radius', 2))
+    except:
+        ctx.blur_radius = 2
+
+    ctx.blur_radius = limit( ctx.blur_radius,1,10,2)
+
     ctx.interpolation = interploations[
         inputs.get('interpolation', [b'BILINEAR'])[0].decode("utf-8")]  # NEAREST,BICUBIC,BILINEAR
     ctx.matting = inputs.get('matting', [b'Kibernetika'])[0].decode("utf-8")  # DEFAULT,KNN,NONE

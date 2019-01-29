@@ -66,7 +66,7 @@ def preprocess_objects(inputs, ctx):
     except:
         ctx.max_objects = 1
 
-    ctx.max_objects = limit( ctx.max_objects,1,10,0)
+    ctx.max_objects = limit( ctx.max_objects,1,10,1)
 
     try:
         ctx.pixel_threshold = int(float(inputs.get('pixel_threshold', 0.5)) * 255)

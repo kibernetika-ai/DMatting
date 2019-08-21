@@ -286,12 +286,12 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
         t = y + t
 
     deps = int(deps / 2)
-    y = _fake_conv2d_transpose(t, deps, 3, strides=2, padding='same')
+    y = _fake_conv2d_transpose(t, deps)
     y = tf.layers.conv2d(y, deps, 3, strides=(1, 1), padding='same')
     y = tf.layers.batch_normalization(y, axis=-1, training=training)
     y = tf.nn.relu(y)
     deps = int(deps / 2)
-    y = _fake_conv2d_transpose(y, deps, 3, strides=2, padding='same')
+    y = _fake_conv2d_transpose(y, deps)
     y = tf.layers.conv2d(y, deps, 3, strides=(1, 1), padding='same')
     y = tf.layers.batch_normalization(y, axis=-1, training=training)
     y = tf.nn.relu(y)

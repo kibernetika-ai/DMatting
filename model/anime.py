@@ -258,7 +258,9 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
     if not training:
         features = features['input']
     else:
-        features.set_shape([params['batch_size'],512,512,3])
+        features.set_shape([params['batch_size'],256,256,3])
+    features = tf.cast(features,tf.float32)
+    features = -1 + 2 * features / 255.0
     deps = params['deps']
     # 32
     y = tf.layers.conv2d(features, deps, 7, strides=(1, 1), padding='same')
@@ -297,6 +299,8 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
     y = tf.nn.relu(y)
     y = tf.layers.conv2d(y, 3, 7, strides=(1, 1), padding='same')
     y = tf.nn.tanh(y)
+    pred = (y * 0.5 + 0.5) * 255
+    pred = tf.cast(pred,tf.uint8)
     if training:
         export_outputs = None
         print('init original')
@@ -328,7 +332,7 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
     return tf.estimator.EstimatorSpec(
         mode=mode,
         eval_metric_ops={},
-        predictions=y,
+        predictions=pred,
         loss=loss,
         training_hooks=[],
         evaluation_hooks=[],
@@ -373,13 +377,12 @@ def input_fn(params):
         def _image(f):
             f = str(f, encoding='UTF-8')
             img = PIL.Image.open(f).convert("RGB")
-            img = img.resize((512, 512), PIL.Image.BICUBIC)
-            img = np.asarray(img, np.float32)
+            img = img.resize((256, 256), PIL.Image.BICUBIC)
+            img = np.asarray(img, np.uint8)
             img = img[:, :, [2, 1, 0]]
-            img = -1 + 2 * img / 255.0
             return img, np.array([1], dtype=np.int32)
 
-        ds = ds.map(lambda f: tuple(tf.py_func(_image, [f], [tf.float32, tf.int32])), num_parallel_calls=1)
+        ds = ds.map(lambda f: tuple(tf.py_func(_image, [f], [tf.uint8, tf.int32])), num_parallel_calls=1)
         ds = ds.shuffle(batch_size * 4).repeat(params['epoch']).batch(batch_size)
         return ds
 

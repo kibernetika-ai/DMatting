@@ -311,7 +311,7 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
         tf.summary.image("example",exmp)
         loss = tf.losses.absolute_difference(o, y, reduction=tf.losses.Reduction.MEAN)
         g = tf.get_default_graph()
-        tf.contrib.quantize.create_eval_graph(input_graph=g)
+        tf.contrib.quantize.create_training_graph(input_graph=g)
 
         opt = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)

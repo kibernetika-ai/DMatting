@@ -248,6 +248,10 @@ def original(features, data):
     y = tf.nn.tanh(deconv03_1(refpad12_1(y)))
     return y
 
+def _fake_conv2d_transpose(t,deps):
+    l = t.get_shape().as_list()
+    t = tf.image.resize_bilinear(t,(l[1]*2,l[2]*2))
+    return tf.layers.conv2d(t,deps,2, strides=(1, 1), padding='same')
 
 def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=None):
     training = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -282,12 +286,12 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
         t = y + t
 
     deps = int(deps / 2)
-    y = tf.layers.conv2d_transpose(t, deps, 3, strides=2, padding='same')
+    y = _fake_conv2d_transpose(t, deps, 3, strides=2, padding='same')
     y = tf.layers.conv2d(y, deps, 3, strides=(1, 1), padding='same')
     y = tf.layers.batch_normalization(y, axis=-1, training=training)
     y = tf.nn.relu(y)
     deps = int(deps / 2)
-    y = tf.layers.conv2d_transpose(y, deps, 3, strides=2, padding='same')
+    y = _fake_conv2d_transpose(y, deps, 3, strides=2, padding='same')
     y = tf.layers.conv2d(y, deps, 3, strides=(1, 1), padding='same')
     y = tf.layers.batch_normalization(y, axis=-1, training=training)
     y = tf.nn.relu(y)
@@ -306,6 +310,9 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
         #exmp  = exmp[:, :,[2, 1, 0]]
         tf.summary.image("example",exmp)
         loss = tf.losses.absolute_difference(o, y, reduction=tf.losses.Reduction.MEAN)
+        g = tf.get_default_graph()
+        tf.contrib.quantize.create_eval_graph(input_graph=g)
+
         opt = tf.train.AdamOptimizer(learning_rate=params['learning_rate'])
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):

@@ -300,7 +300,7 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
     y = tf.layers.conv2d(y, 3, 7, strides=(1, 1), padding='same')
     y = tf.nn.tanh(y)
     pred = (y * 0.5 + 0.5) * 255
-    pred = tf.cast(pred,tf.uint8)
+    #pred = tf.cast(pred,tf.uint8)
     if training:
         export_outputs = None
         print('init original')

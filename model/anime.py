@@ -332,7 +332,7 @@ def _anime_model_fn(features, labels, mode, params=None, config=None, model_dir=
     return tf.estimator.EstimatorSpec(
         mode=mode,
         eval_metric_ops={},
-        predictions=pred,
+        predictions=y,
         loss=loss,
         training_hooks=[],
         evaluation_hooks=[],

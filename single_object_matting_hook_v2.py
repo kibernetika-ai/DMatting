@@ -73,7 +73,7 @@ def process(inputs, ct_x, **kwargs):
     pixel_threshold = limit(pixel_threshold, 1, 254, int(0.5 * 255))
 
     object_classes = [obj_classes.get(get_param(inputs, 'object_class', 'Person'), 1)]
-    effect = get_param(inputs,'effect', 'Remove background')  # Remove background,Mask,Blur
+    effect = get_param(inputs, 'effect', 'Remove background')  # Remove background,Mask,Blur
 
     try:
         blur_radius = int(get_param(inputs, 'blur_radius', 2))
@@ -82,7 +82,7 @@ def process(inputs, ct_x, **kwargs):
 
     blur_radius = limit(blur_radius, 1, 10, 2)
 
-    outputs = ct_x.drivers[0].predict({'inputs': image})
+    outputs = ct_x.drivers[0].predict({'inputs': np.expand_dims(image, axis=0)})
     num_detection = int(outputs['num_detections'][0])
     if num_detection < 1:
         return _return(original_image)
@@ -149,7 +149,8 @@ def process(inputs, ct_x, **kwargs):
     input_trimap = np.expand_dims(input_trimap.astype(np.float32), 2)
     image = image.astype(np.float32)
     input_image = image - g_mean
-    outputs = ct_x.drivers.predict({'input': [input_image], 'trimap': [input_trimap]})
+    outputs = ct_x.drivers.predict(
+        {'input': np.expand_dims(input_image, axis=0), 'trimap': np.expand_dims(input_trimap, axis=0)})
     mask = outputs.get('mask', None)
     if mask is None:
         mask = outputs['output'][0] * 255

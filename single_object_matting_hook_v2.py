@@ -149,7 +149,7 @@ def process(inputs, ct_x, **kwargs):
     input_trimap = np.expand_dims(input_trimap.astype(np.float32), 2)
     image = image.astype(np.float32)
     input_image = image - g_mean
-    outputs = ct_x.drivers.predict(
+    outputs = ct_x.drivers[1].predict(
         {'input': np.expand_dims(input_image, axis=0), 'trimap': np.expand_dims(input_trimap, axis=0)})
     mask = outputs.get('mask', None)
     if mask is None:

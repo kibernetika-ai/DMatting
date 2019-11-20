@@ -73,7 +73,7 @@ def process(inputs, ct_x, **kwargs):
     pixel_threshold = limit(pixel_threshold, 1, 254, int(0.5 * 255))
 
     object_classes = [obj_classes.get(get_param(inputs, 'object_class', 'Person'), 1)]
-    effect = get_param('effect', 'Remove background')  # Remove background,Mask,Blur
+    effect = get_param(inputs,'effect', 'Remove background')  # Remove background,Mask,Blur
 
     try:
         blur_radius = int(get_param(inputs, 'blur_radius', 2))

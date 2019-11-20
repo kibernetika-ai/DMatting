@@ -37,8 +37,8 @@ def process(inputs, ct_x, **kwargs):
         return {'output': result}
 
     ratio = 1.0
-    w = float(original_image.size[0])
-    h = float(original_image.size[1])
+    w = float(original_image.shape[1])
+    h = float(original_image.shape[0])
     if w > h:
         if w > 1024:
             ratio = w / 1024.0

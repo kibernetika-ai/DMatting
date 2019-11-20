@@ -4,11 +4,22 @@ import numpy as np
 from scipy import ndimage
 import cv2
 from ml_serving.utils.helpers import get_param, load_image, boolean_string
-
+import glob
+import os
 LOG = logging.getLogger(__name__)
 
+backgrounds={'None':None}
 
 def init_hook(**params):
+    backgrounds_dir = params.get('backgrounds', None)
+    global backgrounds
+    if backgrounds_dir is not None:
+        for f in glob.glob(backgrounds_dir+'/*.jpg'):
+            name = os.path.basename(f)[:-4]
+            LOG.info('Load: {}'.format(name))
+            img = cv2.imread(f)
+            backgrounds[name] = img[:,:,::-1]
+
     LOG.info('Loaded.')
 
 
@@ -166,9 +177,15 @@ def process(inputs, ct_x, **kwargs):
         mask = cv2.resize(mask, (original_image.shape[1], original_image.shape[0]))
     mask = cv2.GaussianBlur(mask, (21, 21), 11)
     if effect == 'Remove background':
+        background = backgrounds.get(get_param(inputs,'background','None'))
         image = original_image.astype(np.float32)
         mask = np.expand_dims(mask, 2)
         image = image * mask
+        if background is not None:
+            background = cv2.resize(background,(image.shape[1],image.shape[0]))
+            background = background.astype(np.float32)
+            background = background*(1-mask)
+            image = background+image
         image = image.astype(np.uint8)
     elif effect == "Mask":
         mask = mask * 255

@@ -82,7 +82,7 @@ def process(inputs, ct_x, **kwargs):
 
     blur_radius = limit(blur_radius, 1, 10, 2)
 
-    outputs = ct_x.drivers[0].redict({'inputs': image})
+    outputs = ct_x.drivers[0].predict({'inputs': image})
     num_detection = int(outputs['num_detections'][0])
     if num_detection < 1:
         return _return(original_image)
